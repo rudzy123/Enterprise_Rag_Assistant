@@ -22,5 +22,13 @@ A Retrieval-Augmented Generation (RAG) assistant that answers questions
 - Chroma (vector DB)
 - LLM API (OpenAI or Anthropic)
 
-## Status
-🚧 MVP in progress
+## MVP Scope (Current Stage)
+
+This repository currently focuses on a minimal, correct RAG implementation:
+
+- Local document ingestion
+- Semantic retrieval
+- Answer generation constrained to retrieved context
+- Explicit refusal when evidence is insufficient
+
+Evaluation, optimization, and UI polish are planned in later stages.
