@@ -1,15 +1,23 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
 from typing import List
+import os
 import chromadb
 from sentence_transformers import SentenceTransformer
 
+# -------------------------------------------------
+# App
+# -------------------------------------------------
+
 app = FastAPI(title="Enterprise RAG Assistant")
 
-# --- Models ---
+# -------------------------------------------------
+# Models
+# -------------------------------------------------
 
 class Question(BaseModel):
     question: str
+
 
 class Answer(BaseModel):
     answer: str
@@ -17,7 +25,9 @@ class Answer(BaseModel):
     confidence: float
 
 
-# --- Setup ---
+# -------------------------------------------------
+# Setup
+# -------------------------------------------------
 
 embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
 
@@ -26,35 +36,77 @@ collection = chroma_client.get_or_create_collection(
     name="enterprise_docs"
 )
 
-
-# --- Helper Functions ---
+# -------------------------------------------------
+# Helper Functions
+# -------------------------------------------------
 
 def embed(text: str):
     return embedding_model.encode(text).tolist()
 
 
-# --- Routes ---
+def load_curated_markdown(directory: str):
+    """
+    Load curated markdown documents from disk and split by section headers.
+    Each section becomes an individual retrieval unit.
+    """
+    documents = []
+
+    for filename in os.listdir(directory):
+        if not filename.endswith(".md"):
+            continue
+
+        path = os.path.join(directory, filename)
+        with open(path, "r", encoding="utf-8") as f:
+            content = f.read()
+
+        sections = content.split("\n## ")
+        for section in sections:
+            section_text = section.strip()
+            if not section_text:
+                continue
+
+            documents.append(
+                {
+                    "text": section_text,
+                    "metadata": {
+                        "source_file": filename
+                    }
+                }
+            )
+
+    return documents
+
+# -------------------------------------------------
+# Routes
+# -------------------------------------------------
 
 @app.post("/ingest")
-def ingest_docs(documents: List[str]):
+def ingest_docs():
     """
-    Ingest documents into the knowledge base.
+    Ingest curated markdown documents from docs/curated into the vector store.
     """
-    for i, doc in enumerate(documents):
+    docs_path = "docs/curated"
+    documents = load_curated_markdown(docs_path)
+
+    for idx, doc in enumerate(documents):
         collection.add(
-            ids=[str(i)],
-            embeddings=[embed(doc)],
-            documents=[doc],
-            metadatas=[{"source": f"doc_{i}"}],
+            ids=[f"doc_{idx}"],
+            embeddings=[embed(doc["text"])],
+            documents=[doc["text"]],
+            metadatas=[doc["metadata"]],
         )
-    return {"status": "ingested", "count": len(documents)}
+
+    return {
+        "status": "ingested",
+        "documents_ingested": len(documents),
+    }
 
 
 @app.post("/ask", response_model=Answer)
 def ask(question: Question):
     """
-    Answer using retrieved evidence only.
-    Refuse if confidence is low.
+    Answer questions using retrieved evidence only.
+    Refuse to answer when confidence is low.
     """
     query_embedding = embed(question.question)
 
@@ -75,18 +127,18 @@ def ask(question: Question):
 
     combined_context = "\n".join(docs)
 
-    # Simple confidence heuristic (good enough for MVP)
+    # Simple heuristic confidence score
     confidence = min(1.0, len(combined_context) / 500)
 
     if confidence < 0.3:
         return Answer(
-            answer="I do not have enough information to answer confidently.",
-            sources=[m["source"] for m in metas],
+            answer="I do not have enough information in the documents to answer confidently.",
+            sources=[m.get("source_file", "unknown") for m in metas],
             confidence=confidence,
         )
 
     return Answer(
-        answer=f"Based on the documents: {combined_context}",
-        sources=[m["source"] for m in metas],
+        answer=f"Based on the documents:\n\n{combined_context}",
+        sources=[m.get("source_file", "unknown") for m in metas],
         confidence=confidence,
     )
