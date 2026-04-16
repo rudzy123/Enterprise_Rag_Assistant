@@ -32,3 +32,8 @@ This repository currently focuses on a minimal, correct RAG implementation:
 - Explicit refusal when evidence is insufficient
 
 Evaluation, optimization, and UI polish are planned in later stages.
+## Known Limitations
+
+- No reranking or citation span highlighting yet
+- Simple confidence heuristic
+- No evaluation dataset at this stage
