@@ -2,40 +2,58 @@ import os
 import re
 from pathlib import Path
 
-CURATED_DIR = Path("data/curated")
+CURATED_DIR = Path("data/docs/curated")
 
 def split_markdown_sections(text: str):
     """
     Splits markdown text into sections.
-    Prefers ### sections; falls back to ## if no ### exist.
+    Prefers ### sections; falls back to ## sections.
     Returns a list of (section_title, section_text).
+    
+    Robust to:
+    - Files with only ## headers
+    - Files with only ### headers
+    - Mixed ## and ### (prefers ###)
+    - Whitespace variations
     """
+    lines = text.splitlines()
+    sections = []
+    current_title = None
+    current_body = []
 
-    # Try splitting on ### first
-    sections = re.split(r"\n###\s+", text)
+    def flush_section():
+        nonlocal current_title, current_body
+        if current_title and current_body:
+            sections.append(
+                (current_title, "\n".join(current_body).strip())
+            )
+            current_title = None
+            current_body = []
 
-    if len(sections) > 1:
-        # First chunk is preamble; discard if empty
-        results = []
-        for section in sections[1:]:
-            lines = section.strip().splitlines()
-            title = lines[0].strip()
-            body = "\n".join(lines[1:]).strip()
-            if body:
-                results.append((title, body))
-        return results
+    # Detect header level: prefer ### if present, else ##
+    has_h3 = any(re.match(r"^###\s+", line) for line in lines)
+    has_h2 = any(re.match(r"^##\s+", line) for line in lines)
 
-    # Fallback to ##
-    sections = re.split(r"\n##\s+", text)
-    results = []
-    for section in sections[1:]:
-        lines = section.strip().splitlines()
-        title = lines[0].strip()
-        body = "\n".join(lines[1:]).strip()
-        if body:
-            results.append((title, body))
+    if not has_h3 and not has_h2:
+        # No headers found, treat entire file as one section
+        return [("Content", text)]
 
-    return results
+    for line in lines:
+        # Match headers with regex (more robust than startswith)
+        if has_h3 and re.match(r"^###\s+", line):
+            flush_section()
+            current_title = re.sub(r"^###\s+", "", line).strip()
+            current_body = []
+        elif not has_h3 and re.match(r"^##\s+", line):
+            flush_section()
+            current_title = re.sub(r"^##\s+", "", line).strip()
+            current_body = []
+        else:
+            if current_title is not None:
+                current_body.append(line)
+
+    flush_section()
+    return sections
 
 
 def ingest_curated_markdown():
