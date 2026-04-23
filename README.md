@@ -224,3 +224,20 @@ The **0.3 threshold** is the key guardrail: below it, the system refuses to answ
 - Advanced retrieval (reranking, hybrid search)
 - User management and audit logging
 - Performance optimization and caching
+
+## License
+
+This project is licensed under the Creative Commons
+Attribution-NonCommercial-NoDerivatives 4.0 International License.
+
+You are free to:
+- View and run the software
+- Use it for personal or internal purposes
+- Configure it with your own API keys
+
+You may not:
+- Redistribute modified versions
+- Use it for commercial purposes
+- Claim authorship of the original work
+
+© 2026 Rudolf Musika

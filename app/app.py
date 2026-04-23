@@ -1,4 +1,11 @@
 """
+Enterprise RAG Assistant
+Author: Rudolf Musika
+License: CC BY-NC-ND 4.0
+
+This software may be used as-is with user-supplied API keys.
+Modification and redistribution are restricted.
+
 Minimal Streamlit UI for Enterprise RAG Assistant.
 
 Provides a simple interface to ask questions and get answers with citations.
