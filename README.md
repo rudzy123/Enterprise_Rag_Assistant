@@ -108,6 +108,97 @@ OPENAI_API_KEY="sk-..." python answer_generation/generate_answer.py
 - Clear messaging about disabled features
 - No errors or crashes when LLM unavailable
 
+## Evaluation Framework
+
+### Why Evaluate Before Answer Generation?
+Evaluation is performed at the **retrieval layer** before the LLM ever sees the query. This design:
+- Separates signal (quality retrieval) from noise (LLM generation artifacts)
+- Identifies bottlenecks early—poor retrieval cannot be fixed by prompting
+- Reduces costs by failing fast rather than paying for bad generations
+- Enables rapid iteration on chunking, embedding, and ranking strategies
+
+### JSONL Evaluation Dataset
+
+Located in `evals/questions.jsonl`, each line contains a question object:
+
+```json
+{"id": "Q1", "question": "What is the company policy on VPN usage?", "expected_sources": ["network_policy.md"], "answerable": true}
+```
+
+**Fields:**
+- `id`: Unique question identifier
+- `question`: The question text
+- `expected_sources`: List of document filenames that should be retrieved (empty list for answerability controls)
+- `answerable`: Boolean indicating whether the question should be answerable from the corpus
+
+### Evaluation Metrics
+
+Run evaluations with:
+```bash
+python evals/run_evals.py
+```
+
+Three key metrics are computed per question:
+
+| Metric | Definition | Target |
+|--------|-----------|--------|
+| **Retrieval Hit Rate** | % of questions where at least one expected source appears in top-k results | > 80% |
+| **Answerability Accuracy** | % of questions where confidence ≥ 0.3 matches the `answerable` field | > 85% |
+| **Citation Rate** | % of high-confidence answers that return non-empty source lists; low-confidence answers return no sources | 100% |
+
+Example output:
+```
+Retrieval Hit Rate: 75.00%
+Answerability Accuracy: 75.00%
+Citation Rate: 75.00%
+Average Confidence: 0.50
+```
+
+### Using Evaluation Results for Tuning
+
+Evaluation guides iterative improvements:
+
+1. **Low retrieval hit rate** → Re-examine chunking strategy, embedding quality, or top-k value
+2. **Poor answerability accuracy** → Adjust confidence threshold (0.3 default) or improve metadata filtering
+3. **Missing citations** → Ensure metadata (source file names) is properly propagated through the retrieval pipeline
+
+This feedback loop ensures the system reliable before deploying to users.
+
+### Confidence Scoring Strategy
+
+**Key Principle**: Confidence is derived from **retrieval quality signals**, not LLM generation heuristics.
+
+This design choice prevents the system from hallucinating high-confidence answers. If retrieval is weak, the system refuses to answer—no amount of LLM prompt engineering can fix bad source material.
+
+**Confidence Signals:**
+
+| Signal | Weight | Interpretation |
+|--------|--------|-----------------|
+| **Similarity Score** | 55% | Average L2 distance from query embedding to retrieved chunks (lower distance = higher similarity) |
+| **Document Count** | 30% | Number of relevant chunks retrieved; multiple matches strengthen signal (max 3) |
+| **Source Consolidation** | 15% | Whether multiple chunks come from the same source document; same-source chunks indicate concentrated support |
+
+**Score Calculation:**
+```
+confidence = 0.55 × avg_similarity + 0.30 × doc_count_score + 0.15 × source_consistency
+```
+
+**Confidence Ranges:**
+
+| Range | Score | Behavior | Use Case |
+|-------|-------|----------|----------|
+| **Weak** | 0.0–0.3 | System refuses to answer | Unanswerable questions, weak matches |
+| **Partial** | 0.3–0.6 | Answer provided with caution | Relevant but incomplete evidence |
+| **Strong** | 0.6–1.0 | High-confidence answer | Multiple strong matches, well-supported |
+
+The **0.3 threshold** is the key guardrail: below it, the system refuses to answer. This prevents generating unreliable responses for out-of-corpus questions.
+
+**Why Retrieval-Based Confidence?**
+- **Transparency**: Score directly reflects data quality, not model uncertainty
+- **Debuggability**: Confidence reasons include source counts and similarity metrics
+- **Controllability**: Confidence can be tuned by adjusting chunking, embedding, or retrieval top-k
+- **Trustworthiness**: Failures are predictable and attributable to source material, not hallucination
+
 ## Known Limitations
 
 ### Current Implementation

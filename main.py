@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
-from typing import List
+from typing import List, Optional, Tuple
 import os
 import chromadb
 from sentence_transformers import SentenceTransformer
@@ -23,6 +23,7 @@ class Answer(BaseModel):
     answer: str
     sources: List[str]
     confidence: float
+    confidence_reason: Optional[str] = None  # Debug info: why this confidence score
 
 
 # -------------------------------------------------
@@ -42,6 +43,104 @@ collection = chroma_client.get_or_create_collection(
 
 def embed(text: str):
     return embedding_model.encode(text).tolist()
+
+
+def compute_retrieval_confidence(
+    num_docs: int,
+    distances: List[float],
+    metadatas: List[dict]
+) -> Tuple[float, str]:
+    """
+    Compute confidence score based on retrieval quality signals.
+    
+    Confidence Score Ranges:
+    - 0.0–0.3:   Weak evidence (system refuses to answer)
+    - 0.3–0.6:   Partial evidence (answer given with caution)
+    - 0.6–1.0:   Strong evidence (high-confidence answer)
+    
+    Signals used:
+    1. Number of retrieved documents (more docs = stronger signal)
+    2. Similarity scores (lower distance = higher similarity/relevance)
+    3. Source diversity (multiple chunks from same source = higher confidence)
+    
+    Returns:
+        Tuple of (confidence_score, confidence_reason)
+        - confidence_score: float between 0.0 and 1.0
+        - confidence_reason: str explaining the score (for debugging/evaluation)
+    """
+    if num_docs == 0:
+        return 0.0, "No relevant documents found"
+    
+    # Signal 1: Bonus for multiple documents retrieved
+    # Penalize if only 1 doc (risk of being a weak match)
+    doc_count_score = min(num_docs / 3.0, 1.0)  # Max 3 docs, each adds 0.33
+    
+    # Signal 2: Average similarity score (distances)
+    # Chroma uses L2 distance; lower is better
+    # Convert to similarity: similarity = 1 / (1 + distance)
+    # This maps: distance=0 -> similarity=1, distance=1 -> similarity=0.5
+    if distances:
+        similarities = [1.0 / (1.0 + d) for d in distances]
+        avg_similarity = sum(similarities) / len(similarities)
+    else:
+        avg_similarity = 0.5  # Default if no distances available
+    
+    # Signal 3: Source consolidation (multiple chunks from same source)
+    # Extract source files and count unique sources
+    sources = [m.get("source_file", "unknown") for m in metadatas if m]
+    unique_sources = len(set(sources))
+    
+    # If multiple docs come from same source, boost confidence
+    # (indicates the answer is well-supported by that document)
+    source_consistency = 1.0 if unique_sources == 1 else 0.85
+    if unique_sources > 1:
+        # Diversity penalty: if we hit multiple sources, decrease slightly
+        source_consistency = 0.85
+    
+    # Combine signals with weighted average
+    # Emphasize similarity (most important) > doc count > source consistency
+    # Weights: 55% similarity + 30% doc count + 15% source consistency
+    confidence = (
+        0.55 * avg_similarity +      # Similarity is most important
+        0.30 * doc_count_score +     # Multiple docs provide strength
+        0.15 * source_consistency    # Concentration in one source is good
+    )
+    
+    # Final score clamped to [0.0, 1.0]
+    # Score interpretation:
+    # - 0.0–0.3:   Weak evidence    → System refuses answer
+    # - 0.3–0.6:   Partial evidence → Answer given with caution
+    # - 0.6–1.0:   Strong evidence  → High-confidence answer
+    final_confidence = min(1.0, max(0.0, confidence))
+    
+    # Generate human-readable reason for debugging/evaluation
+    reason_parts = []
+    
+    # Document count assessment
+    if num_docs == 1:
+        reason_parts.append("Single section retrieved")
+    elif num_docs >= 3:
+        reason_parts.append("Multiple sections retrieved")
+    else:
+        reason_parts.append(f"{num_docs} sections retrieved")
+    
+    # Similarity assessment
+    if avg_similarity >= 0.75:
+        reason_parts.append("high similarity to query")
+    elif avg_similarity >= 0.5:
+        reason_parts.append("moderate similarity to query")
+    else:
+        reason_parts.append("low similarity to query")
+    
+    # Source consolidation assessment
+    if unique_sources == 1:
+        reason_parts.append("from same document")
+    else:
+        reason_parts.append(f"from {unique_sources} different documents")
+    
+    confidence_reason = " ".join([reason_parts[0], reason_parts[1], reason_parts[2]])
+    
+    return final_confidence, confidence_reason
 
 
 def load_curated_markdown(directory: str):
@@ -106,6 +205,7 @@ def ingest_docs():
 def ask(question: Question):
     """
     Answer questions using retrieved evidence only.
+    Confidence is based on retrieval quality (similarity scores, document count, source consolidation).
     Refuse to answer when confidence is low.
     """
     query_embedding = embed(question.question)
@@ -117,28 +217,38 @@ def ask(question: Question):
 
     docs = results.get("documents", [[]])[0]
     metas = results.get("metadatas", [[]])[0]
+    distances = results.get("distances", [[]])[0]  # L2 distances from Chroma
 
     if not docs:
         return Answer(
             answer="I could not find relevant information in the provided documents.",
             sources=[],
             confidence=0.0,
+            confidence_reason="No documents matched the query",
         )
+
+    # Compute confidence based on retrieval quality
+    confidence, confidence_reason = compute_retrieval_confidence(
+        num_docs=len(docs),
+        distances=distances,
+        metadatas=metas
+    )
 
     combined_context = "\n".join(docs)
 
-    # Simple heuristic confidence score
-    confidence = min(1.0, len(combined_context) / 500)
-
+    # Refuse to answer if confidence < 0.3 (weak evidence range)
+    # Threshold of 0.3 marks the boundary between weak and partial evidence
     if confidence < 0.3:
         return Answer(
             answer="I do not have enough information in the documents to answer confidently.",
             sources=[m.get("source_file", "unknown") for m in metas],
             confidence=confidence,
+            confidence_reason=confidence_reason,
         )
 
     return Answer(
         answer=f"Based on the documents:\n\n{combined_context}",
         sources=[m.get("source_file", "unknown") for m in metas],
         confidence=confidence,
+        confidence_reason=confidence_reason,
     )
