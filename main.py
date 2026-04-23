@@ -32,7 +32,7 @@ class Answer(BaseModel):
 
 embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
 
-chroma_client = chromadb.Client()
+chroma_client = chromadb.PersistentClient(path="./chroma_db")
 collection = chroma_client.get_or_create_collection(
     name="enterprise_docs"
 )
@@ -182,9 +182,35 @@ def load_curated_markdown(directory: str):
 @app.post("/ingest")
 def ingest_docs():
     """
-    Ingest curated markdown documents from docs/curated into the vector store.
+    Ingest curated markdown documents from data/docs/curated into the vector store.
     """
-    docs_path = "docs/curated"
+    docs_path = "data/docs/curated"
+    
+    # Guardrail: Check if directory exists
+    if not os.path.exists(docs_path):
+        return {
+            "error": "Document directory not found",
+            "details": f"Expected directory '{docs_path}' does not exist",
+            "status": "failed"
+        }
+    
+    # Guardrail: Check if directory contains .md files
+    try:
+        md_files = [f for f in os.listdir(docs_path) if f.endswith('.md')]
+        if not md_files:
+            return {
+                "error": "No markdown files found",
+                "details": f"No .md files found in '{docs_path}'",
+                "status": "failed"
+            }
+    except OSError as e:
+        return {
+            "error": "Directory access error",
+            "details": f"Cannot access directory '{docs_path}': {str(e)}",
+            "status": "failed"
+        }
+    
+    # Load and process documents
     documents = load_curated_markdown(docs_path)
 
     for idx, doc in enumerate(documents):
@@ -198,6 +224,7 @@ def ingest_docs():
     return {
         "status": "ingested",
         "documents_ingested": len(documents),
+        "source_directory": docs_path
     }
 
 
@@ -219,13 +246,42 @@ def ask(question: Question):
     metas = results.get("metadatas", [[]])[0]
     distances = results.get("distances", [[]])[0]  # L2 distances from Chroma
 
+    print(f"DEBUG: Retrieved {len(docs)} documents, {len(metas)} metadatas, {len(distances)} distances")
+
     if not docs:
+        print("DEBUG: No documents retrieved")
         return Answer(
             answer="I could not find relevant information in the provided documents.",
             sources=[],
             confidence=0.0,
             confidence_reason="No documents matched the query",
         )
+
+    # Relevance gate: Check top similarity score
+    # Convert L2 distance to similarity: similarity = 1 / (1 + distance)
+    if distances:
+        top_distance = min(distances)  # Smallest distance = highest similarity
+        top_similarity = 1.0 / (1.0 + top_distance)
+        
+        print(f"DEBUG: Top distance: {top_distance:.3f}, Top similarity: {top_similarity:.3f}")
+        print(f"DEBUG: Metadatas: {metas}")
+        
+        # If top similarity is below threshold, force refusal
+        RELEVANCE_THRESHOLD = 0.35
+        if top_similarity < RELEVANCE_THRESHOLD:
+            print(f"DEBUG: Relevance gate triggered - similarity {top_similarity:.3f} < {RELEVANCE_THRESHOLD}")
+            sources_list = [m.get("source_file", "unknown") for m in metas]
+            print(f"DEBUG: Returning sources: {sources_list}")
+            return Answer(
+                answer="I do not have enough information in the documents to answer confidently.",
+                sources=sources_list,
+                confidence=0.0,
+                confidence_reason=f"Top similarity score ({top_similarity:.2f}) below relevance threshold ({RELEVANCE_THRESHOLD})",
+            )
+        else:
+            print(f"DEBUG: Relevance gate passed - similarity {top_similarity:.3f} >= {RELEVANCE_THRESHOLD}")
+    else:
+        print("DEBUG: No distances available for relevance gate")
 
     # Compute confidence based on retrieval quality
     confidence, confidence_reason = compute_retrieval_confidence(

@@ -193,6 +193,16 @@ confidence = 0.55 × avg_similarity + 0.30 × doc_count_score + 0.15 × source_c
 
 The **0.3 threshold** is the key guardrail: below it, the system refuses to answer. This prevents generating unreliable responses for out-of-corpus questions.
 
+#### Relevance Gating
+
+A **relevance gate** prevents answering semantically weak matches by checking the top similarity score before confidence computation. If the highest similarity score falls below 0.35, the system immediately refuses to answer with confidence 0.0.
+
+**Why Needed:** Prevents over-confident wrong answers when retrieval finds only loosely related documents. Evaluation showed 0% retrieval hit rate with high confidence—relevance gating catches these false positives.
+
+**How It Works:** Converts Chroma L2 distance to similarity (`similarity = 1/(1 + distance)`), compares top score against 0.35 threshold. Threshold chosen as balance: high enough for meaningful matches, low enough to reject obviously irrelevant retrievals.
+
+**Impact:** Forces refusal for weak semantic matches while preserving existing confidence logic for stronger retrievals.
+
 **Why Retrieval-Based Confidence?**
 - **Transparency**: Score directly reflects data quality, not model uncertainty
 - **Debuggability**: Confidence reasons include source counts and similarity metrics
@@ -205,7 +215,7 @@ The **0.3 threshold** is the key guardrail: below it, the system refuses to answ
 - **Simple retrieval**: No reranking or hybrid search
 - **Basic embeddings**: Single model (all-MiniLM-L6-v2), no fine-tuning
 - **Limited context**: Fixed top-k retrieval (k=4-5)
-- **No evaluation**: No quantitative metrics or test suite
+- **Retrieval quality**: Current evaluation shows 0% retrieval hit rate - needs tuning
 
 ### LLM Integration
 - **API dependency**: Requires OpenAI API access and credits
