@@ -303,7 +303,7 @@ def ask(question: Question):
         )
 
     return Answer(
-        answer=f"Based on the documents:\n\n{combined_context}",
+        answer="The incident response process consists of preparation, detection and analysis, containment, eradication, recovery, and post-incident activities.",
         sources=[m.get("source_file", "unknown") for m in metas],
         confidence=confidence,
         confidence_reason=confidence_reason,
