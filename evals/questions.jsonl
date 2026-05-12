@@ -1,4 +1,65 @@
-{"id": "Q1", "question": "What is the company policy on VPN usage?", "expected_sources": ["network_policy.md"], "answerable": true}
-{"id": "Q2", "question": "How long are security logs retained?", "expected_sources": ["logging_policy.md"], "answerable": true}
-{"id": "Q3", "question": "What is the dress code for external conferences?", "expected_sources": [], "answerable": false}
-{"id": "Q4", "question": "Who approves vendor access requests?", "expected_sources": ["vendor_access.md"], "answerable": true}
+{"question": "What is the purpose of the access control policy?", "expected_answer": "This policy defines requirements for managing logical access to organizational systems and data.", "source_doc_id": "access_control_policy.md"}
+{"question": "Who does the access control policy apply to?", "expected_answer": "Applies to all employees, contractors, and service accounts.", "source_doc_id": "access_control_policy.md"}
+{"question": "What principle must access follow according to the policy?", "expected_answer": "Access must follow the principle of least privilege", "source_doc_id": "access_control_policy.md"}
+{"question": "What is required for privileged access?", "expected_answer": "Privileged access requires approval and documentation", "source_doc_id": "access_control_policy.md"}
+{"question": "How often must access reviews occur?", "expected_answer": "Access reviews must occur at least quarterly", "source_doc_id": "access_control_policy.md"}
+{"question": "When must access be revoked?", "expected_answer": "Access must be revoked immediately upon termination", "source_doc_id": "access_control_policy.md"}
+{"question": "Who approves access requests?", "expected_answer": "Managers approve access requests", "source_doc_id": "access_control_policy.md"}
+{"question": "Who enforces technical controls for access?", "expected_answer": "IT enforces technical controls", "source_doc_id": "access_control_policy.md"}
+{"question": "Who audits access records?", "expected_answer": "Security audits access records", "source_doc_id": "access_control_policy.md"}
+{"question": "What are the consequences of violating the access control policy?", "expected_answer": "Violations may result in disciplinary action or access revocation.", "source_doc_id": "access_control_policy.md"}
+{"question": "What is the purpose of the incident response runbook?", "expected_answer": "Defines steps for responding to cybersecurity incidents.", "source_doc_id": "incident_response_runbook.md"}
+{"question": "What are some trigger events for incident response?", "expected_answer": "Suspicious login activity, Malware detection, Data exfiltration alerts", "source_doc_id": "incident_response_runbook.md"}
+{"question": "What are the response steps in the incident response runbook?", "expected_answer": "1. Identify and classify the incident 2. Contain affected systems 3. Preserve evidence 4. Eradicate root cause 5. Restore services 6. Document lessons learned", "source_doc_id": "incident_response_runbook.md"}
+{"question": "When must high-severity incidents be reported?", "expected_answer": "High-severity incidents must be reported to Security Leadership within one hour of detection.", "source_doc_id": "incident_response_runbook.md"}
+{"question": "What is NIST SP 800-53?", "expected_answer": "NIST Special Publication 800-53 Revision 5 – Selected Security Controls", "source_doc_id": "nist_800_53_selected_controls.md"}
+{"question": "What is AC-2 in NIST 800-53?", "expected_answer": "AC-2 Account Management - Organizations manage information system accounts across their lifecycle, including creation, modification, disabling, and removal.", "source_doc_id": "nist_800_53_selected_controls.md"}
+{"question": "What does AC-6 Least Privilege state?", "expected_answer": "Users are granted the minimum access necessary to perform authorized tasks. Privileged access is restricted, monitored, and reviewed to reduce the risk of misuse or compromise.", "source_doc_id": "nist_800_53_selected_controls.md"}
+{"question": "What is IA-5 Authenticator Management?", "expected_answer": "Authenticators (such as passwords, tokens, or certificates) are protected from unauthorized disclosure and managed through a defined lifecycle.", "source_doc_id": "nist_800_53_selected_controls.md"}
+{"question": "What does AU-6 require?", "expected_answer": "Audit logs are reviewed and analyzed to identify inappropriate, unusual, or suspicious activity.", "source_doc_id": "nist_800_53_selected_controls.md"}
+{"question": "What is the purpose of NIST SP 800-61?", "expected_answer": "This document summarizes key guidance from NIST SP 800-61 Rev. 3 to support incident response knowledge retrieval and operational awareness.", "source_doc_id": "nist_800_61_incident_response.md"}
+{"question": "What are the incident response objectives?", "expected_answer": "Reduce the impact of cybersecurity incidents, Improve detection and response capabilities, Support business continuity, Enable continuous improvement", "source_doc_id": "nist_800_61_incident_response.md"}
+{"question": "What are the core incident response functions?", "expected_answer": "Preparation, Detection and Analysis, Containment, Eradication, and Recovery", "source_doc_id": "nist_800_61_incident_response.md"}
+{"question": "What does the Preparation phase include?", "expected_answer": "Organizations establish governance, policies, roles, training, and tools required to respond to incidents effectively.", "source_doc_id": "nist_800_61_incident_response.md"}
+{"question": "What is the focus of Detection and Analysis?", "expected_answer": "Detection focuses on timely identification and accurate classification to enable appropriate response actions.", "source_doc_id": "nist_800_61_incident_response.md"}
+{"question": "What happens during Containment, Eradication, and Recovery?", "expected_answer": "Containment limits spread or impact, Eradication removes the root cause, Recovery restores normal operations", "source_doc_id": "nist_800_61_incident_response.md"}
+{"question": "What is the principle of least privilege?", "expected_answer": "Users are granted the minimum access necessary to perform authorized tasks.", "source_doc_id": ["access_control_policy.md", "nist_800_53_selected_controls.md"]}
+{"question": "How should compromised authenticators be handled?", "expected_answer": "Compromised or suspected compromised authenticators are replaced promptly.", "source_doc_id": "nist_800_53_selected_controls.md"}
+{"question": "What should be done when an incident is detected?", "expected_answer": "Identify and classify the incident, Contain affected systems, Preserve evidence", "source_doc_id": ["incident_response_runbook.md", "nist_800_61_incident_response.md"]}
+{"question": "What is account management in access control?", "expected_answer": "Organizations manage information system accounts across their lifecycle, including creation, modification, disabling, and removal.", "source_doc_id": "nist_800_53_selected_controls.md"}
+{"question": "Why is privileged access restricted?", "expected_answer": "Privileged access is restricted, monitored, and reviewed to reduce the risk of misuse or compromise.", "source_doc_id": "nist_800_53_selected_controls.md"}
+{"question": "What is the scope of the access control policy?", "expected_answer": "Applies to all employees, contractors, and service accounts.", "source_doc_id": "access_control_policy.md"}
+{"question": "What are the responsibilities in access control?", "expected_answer": "Managers approve access requests, IT enforces technical controls, Security audits access records", "source_doc_id": "access_control_policy.md"}
+{"question": "What triggers incident response?", "expected_answer": "Suspicious login activity, Malware detection, Data exfiltration alerts", "source_doc_id": "incident_response_runbook.md"}
+{"question": "What comes after containing an incident?", "expected_answer": "Preserve evidence, Eradicate root cause, Restore services, Document lessons learned", "source_doc_id": "incident_response_runbook.md"}
+{"question": "What is the NIST Cybersecurity Framework alignment?", "expected_answer": "The guidance aligns incident response activities with the NIST Cybersecurity Framework (CSF) 2.0.", "source_doc_id": "nist_800_61_incident_response.md"}
+{"question": "What is required for effective incident response preparation?", "expected_answer": "Defining incident categories, communication channels, and escalation paths.", "source_doc_id": "nist_800_61_incident_response.md"}
+{"question": "What is the focus of incident detection?", "expected_answer": "Timely identification and accurate classification to enable appropriate response actions.", "source_doc_id": "nist_800_61_incident_response.md"}
+{"question": "What happens during incident containment?", "expected_answer": "Containment limits spread or impact", "source_doc_id": "nist_800_61_incident_response.md"}
+{"question": "What is incident eradication?", "expected_answer": "Eradication removes the root cause", "source_doc_id": "nist_800_61_incident_response.md"}
+{"question": "What is incident recovery?", "expected_answer": "Recovery restores normal operations", "source_doc_id": "nist_800_61_incident_response.md"}
+{"question": "How often should account reviews be performed?", "expected_answer": "Account reviews are performed periodically to ensure accounts remain appropriate to user roles and responsibilities.", "source_doc_id": "nist_800_53_selected_controls.md"}
+{"question": "What is authenticator management?", "expected_answer": "Authenticators are protected from unauthorized disclosure and managed through a defined lifecycle.", "source_doc_id": "nist_800_53_selected_controls.md"}
+{"question": "What should be done with audit logs?", "expected_answer": "Audit logs are reviewed and analyzed to identify inappropriate, unusual, or suspicious activity.", "source_doc_id": "nist_800_53_selected_controls.md"}
+{"question": "What is the goal of incident response?", "expected_answer": "Reduce the impact of cybersecurity incidents, Improve detection and response capabilities, Support business continuity, Enable continuous improvement", "source_doc_id": "nist_800_61_incident_response.md"}
+{"question": "What tools are needed for incident response?", "expected_answer": "Organizations establish governance, policies, roles, training, and tools required to respond to incidents effectively.", "source_doc_id": "nist_800_61_incident_response.md"}
+{"question": "What is the first step in incident response?", "expected_answer": "Identify and classify the incident", "source_doc_id": "incident_response_runbook.md"}
+{"question": "What is the second step in incident response?", "expected_answer": "Contain affected systems", "source_doc_id": "incident_response_runbook.md"}
+{"question": "What is the third step in incident response?", "expected_answer": "Preserve evidence", "source_doc_id": "incident_response_runbook.md"}
+{"question": "What is the fourth step in incident response?", "expected_answer": "Eradicate root cause", "source_doc_id": "incident_response_runbook.md"}
+{"question": "What is the fifth step in incident response?", "expected_answer": "Restore services", "source_doc_id": "incident_response_runbook.md"}
+{"question": "What is the sixth step in incident response?", "expected_answer": "Document lessons learned", "source_doc_id": "incident_response_runbook.md"}
+{"question": "Who must be notified for high-severity incidents?", "expected_answer": "Security Leadership", "source_doc_id": "incident_response_runbook.md"}
+{"question": "How quickly must high-severity incidents be reported?", "expected_answer": "within one hour of detection", "source_doc_id": "incident_response_runbook.md"}
+{"question": "What is the status of NIST 800-53?", "expected_answer": "Public Domain (U.S. Government Work)", "source_doc_id": "nist_800_53_selected_controls.md"}
+{"question": "What is the publisher of NIST 800-53?", "expected_answer": "National Institute of Standards and Technology (NIST)", "source_doc_id": "nist_800_53_selected_controls.md"}
+{"question": "Is NIST 800-53 a replacement for the full standard?", "expected_answer": "This is not a replacement for the full standard.", "source_doc_id": "nist_800_53_selected_controls.md"}
+{"question": "What is the focus of the curated NIST 800-53?", "expected_answer": "commonly referenced controls relevant to enterprise IT operations and compliance discussions", "source_doc_id": "nist_800_53_selected_controls.md"}
+{"question": "What is the source of NIST 800-61?", "expected_answer": "NIST Special Publication 800-61 Revision 3", "source_doc_id": "nist_800_61_incident_response.md"}
+{"question": "What is the status of NIST 800-61?", "expected_answer": "Public Domain (U.S. Government Work)", "source_doc_id": "nist_800_61_incident_response.md"}
+{"question": "What framework does NIST 800-61 align with?", "expected_answer": "NIST Cybersecurity Framework (CSF) 2.0", "source_doc_id": "nist_800_61_incident_response.md"}
+{"question": "What is the dress code for external conferences?", "expected_answer": null, "source_doc_id": null}
+{"question": "What is the company cafeteria menu?", "expected_answer": null, "source_doc_id": null}
+{"question": "Who won the last company ping pong tournament?", "expected_answer": null, "source_doc_id": null}
+{"question": "What is the weather like today?", "expected_answer": null, "source_doc_id": null}
+{"question": "How do I book a vacation?", "expected_answer": null, "source_doc_id": null}

@@ -11,6 +11,40 @@ A secure, enterprise-style Retrieval-Augmented Generation (RAG) assistant that:
 - Accepts user-supplied API keys at runtime
 - Degrades gracefully when LLM access is unavailable
 
+## Business Problem
+
+Enterprise knowledge management faces critical challenges:
+- **Information Fragmentation**: Critical policies and procedures scattered across documents
+- **Access Barriers**: Employees struggle to locate accurate answers from internal documentation
+- **Quality Risks**: Generic AI chatbots frequently hallucinate or provide uncited, unreliable answers
+- **Compliance Concerns**: Incorrect information can lead to security violations or operational errors
+- **Scalability Issues**: Manual knowledge curation doesn't scale with document growth
+
+## Why RAG Systems Fail in Production
+
+Traditional RAG implementations suffer from:
+- **Retrieval Gaps**: Poor embedding quality or indexing misses critical context
+- **Generation Hallucinations**: LLMs fabricate information despite retrieval context
+- **Quality Blindness**: No systematic evaluation of answer accuracy and grounding
+- **Maintenance Burden**: No automated monitoring of system performance degradation
+- **Debugging Opacity**: Difficult to diagnose why specific answers fail
+
+## How This System Reduces Hallucination Risk
+
+This evaluation-driven RAG system implements multiple safeguards:
+
+- **Groundedness Evaluation**: Every answer scored for factual support (70%+ threshold)
+- **Importance-Weighted Penalties**: Key claims unsupported = -0.5 penalty, supporting details = 0.0
+- **Failure Categorization**: Automatic diagnosis (hallucination, weak retrieval, partial context, vague questions)
+- **Retrieval Metrics**: Precision/recall tracking with missing/irrelevant document identification
+- **Continuous Monitoring**: Automated evaluation suite with 55 test questions
+
+## Key Features
+- Semantic search over internal documents
+- Source-cited answers
+- Guardrails against hallucination
+- Evaluation-driven quality checks
+
 ## Problem
 Employees struggle to find accurate answers across internal documents
 (policies, manuals, runbooks). Generic chatbots hallucinate or give
@@ -110,94 +144,105 @@ OPENAI_API_KEY="sk-..." python answer_generation/generate_answer.py
 
 ## Evaluation Framework
 
-### Why Evaluate Before Answer Generation?
-Evaluation is performed at the **retrieval layer** before the LLM ever sees the query. This design:
-- Separates signal (quality retrieval) from noise (LLM generation artifacts)
-- Identifies bottlenecks early—poor retrieval cannot be fixed by prompting
-- Reduces costs by failing fast rather than paying for bad generations
-- Enables rapid iteration on chunking, embedding, and ranking strategies
+### Running Evaluations
 
-### JSONL Evaluation Dataset
+The system includes a comprehensive evaluation framework to assess RAG performance.
 
-Located in `evals/questions.jsonl`, each line contains a question object:
+1. **Start the API server:**
+   ```bash
+   OPENAI_API_KEY="your-key-here" python main.py
+   ```
+
+2. **Run evaluations:**
+   ```bash
+   python evals/run_evals.py
+   ```
+
+   This will:
+   - Load questions from `evals/questions.jsonl`
+   - Query the `/ask` endpoint
+   - Compute metrics
+   - Save detailed results to `evals/results.json`
+
+### Evaluation Dataset
+
+Located in `evals/questions.jsonl`, contains 55+ test questions with:
 
 ```json
-{"id": "Q1", "question": "What is the company policy on VPN usage?", "expected_sources": ["network_policy.md"], "answerable": true}
+{"question": "What is the purpose of the access control policy?", "expected_answer": "This policy defines requirements for managing logical access to organizational systems and data.", "source_doc_id": "access_control_policy.md"}
 ```
 
 **Fields:**
-- `id`: Unique question identifier
 - `question`: The question text
-- `expected_sources`: List of document filenames that should be retrieved (empty list for answerability controls)
-- `answerable`: Boolean indicating whether the question should be answerable from the corpus
+- `expected_answer`: Expected answer (optional, for groundedness evaluation)
+- `source_doc_id`: Expected source document(s) (string or list)
 
 ### Evaluation Metrics
 
-Run evaluations with:
-```bash
-python evals/run_evals.py
-```
+The system computes comprehensive metrics across retrieval quality, answer grounding, and overall reliability:
 
-Three key metrics are computed per question:
+#### Retrieval Metrics
+| Metric | Definition | Target | Why It Matters |
+|--------|-----------|--------|----------------|
+| **Retrieval Hit Rate** | % of questions where expected source appears in retrieved sources | > 80% | Ensures critical documents are found |
+| **Retrieval Precision** | Average fraction of retrieved sources that are relevant | > 0.8 | Minimizes irrelevant document retrieval |
+| **Retrieval Recall** | Average fraction of expected sources that were retrieved | > 0.8 | Ensures comprehensive context coverage |
 
-| Metric | Definition | Target |
-|--------|-----------|--------|
-| **Retrieval Hit Rate** | % of questions where at least one expected source appears in top-k results | > 80% |
-| **Answerability Accuracy** | % of questions where confidence ≥ 0.3 matches the `answerable` field | > 85% |
-| **Citation Rate** | % of high-confidence answers that return non-empty source lists; low-confidence answers return no sources | 100% |
+#### Answer Quality Metrics
+| Metric | Definition | Target | Why It Matters |
+|--------|-----------|--------|----------------|
+| **Groundedness Rate** | % of answers where weighted support score ≥70% | > 70% | Prevents hallucination and fabrication |
+| **Citation Rate** | % of answers that include source citations | > 90% | Enables answer verification |
+| **Answer Relevance Rate** | % of answers semantically relevant to the question | > 80% | Ensures on-topic responses |
 
-Example output:
-```
-Retrieval Hit Rate: 75.00%
-Answerability Accuracy: 75.00%
-Citation Rate: 75.00%
-Average Confidence: 0.50
-```
+#### Groundedness Scoring Algorithm
+- **Semantic Similarity**: Uses SentenceTransformer embeddings to compare answer claims against retrieved chunks
+- **Support Levels**: 
+  - **Strong** (≥0.75 similarity): Full credit (weight: +1.0)
+  - **Weak** (0.6-0.75 similarity): Partial credit (weight: +0.5) 
+  - **Unsupported** (<0.6 similarity): No credit (weight: 0.0 or -0.5 penalty)
+- **Importance Weighting**: LLM classifies sentences as 'key' (factual claims requiring strong support) vs 'supporting' (details)
+- **Penalty System**: Unsupported key claims = -0.5 penalty, supporting details = 0.0 (no penalty)
+- **Final Score**: Normalized to 0-100 scale accounting for penalties
 
-### Using Evaluation Results for Tuning
+#### Failure Analysis (Groundedness < 70%)
+Automatic categorization of failures with actionable insights:
 
-Evaluation guides iterative improvements:
+| Failure Type | Description | Debugging Action |
+|-------------|-------------|------------------|
+| **hallucination** | Unsupported key factual claims | Check chunk relevance, adjust similarity thresholds, improve prompt engineering |
+| **weak_retrieval** | No relevant chunks retrieved | Enhance embedding quality, tune retrieval parameters, expand document coverage |
+| **partial_context** | Missing critical expected sources (recall < 0.5) | Increase top-k retrieval, improve ranking algorithms |
+| **vague_question** | Question too broad or ambiguous | Add question preprocessing, implement clarification prompts |
 
-1. **Low retrieval hit rate** → Re-examine chunking strategy, embedding quality, or top-k value
-2. **Poor answerability accuracy** → Adjust confidence threshold (0.3 default) or improve metadata filtering
-3. **Missing citations** → Ensure metadata (source file names) is properly propagated through the retrieval pipeline
+### Example Failure Analysis
 
-This feedback loop ensures the system reliable before deploying to users.
+**Question**: "What are the requirements for incident response team composition?"
 
-### Confidence Scoring Strategy
+**System Answer**: "The incident response team must include a team lead, technical experts, and legal counsel. Response time should be within 1 hour."
 
-**Key Principle**: Confidence is derived from **retrieval quality signals**, not LLM generation heuristics.
+**Groundedness Score**: 45% (FAIL)
 
-This design choice prevents the system from hallucinating high-confidence answers. If retrieval is weak, the system refuses to answer—no amount of LLM prompt engineering can fix bad source material.
+**Failure Type**: hallucination
 
-**Confidence Signals:**
+**Unsupported Claims**:
+- "Response time should be within 1 hour" (importance: key)
+  - Closest chunk: "The incident response plan outlines team roles and responsibilities."
+  - Similarity: 0.234 (unsupported)
+- "The incident response team must include legal counsel" (importance: key)  
+  - Closest chunk: "Team composition includes technical staff and management representatives."
+  - Similarity: 0.412 (unsupported)
 
-| Signal | Weight | Interpretation |
-|--------|--------|-----------------|
-| **Similarity Score** | 55% | Average L2 distance from query embedding to retrieved chunks (lower distance = higher similarity) |
-| **Document Count** | 30% | Number of relevant chunks retrieved; multiple matches strengthen signal (max 3) |
-| **Source Consolidation** | 15% | Whether multiple chunks come from the same source document; same-source chunks indicate concentrated support |
+**Debugging Insights**:
+- **Root Cause**: Retrieved chunks missing specific composition requirements
+- **Action Items**: 
+  - Verify incident response document indexing
+  - Consider increasing retrieval top-k from 4 to 6
+  - Review embedding model for domain-specific terms
 
-**Score Calculation:**
-```
-confidence = 0.55 × avg_similarity + 0.30 × doc_count_score + 0.15 × source_consistency
-```
+### Results
 
-**Confidence Ranges:**
-
-| Range | Score | Behavior | Use Case |
-|-------|-------|----------|----------|
-| **Weak** | 0.0–0.3 | System refuses to answer | Unanswerable questions, weak matches |
-| **Partial** | 0.3–0.6 | Answer provided with caution | Relevant but incomplete evidence |
-| **Strong** | 0.6–1.0 | High-confidence answer | Multiple strong matches, well-supported |
-
-The **0.3 threshold** is the key guardrail: below it, the system refuses to answer. This prevents generating unreliable responses for out-of-corpus questions.
-
-#### Relevance Gating
-
-A **relevance gate** prevents answering semantically weak matches by checking the top similarity score before confidence computation. If the highest similarity score falls below 0.35, the system immediately refuses to answer with confidence 0.0.
-
-**Why Needed:** Prevents over-confident wrong answers when retrieval finds only loosely related documents. Evaluation showed 0% retrieval hit rate with high confidence—relevance gating catches these false positives.
+Results are saved to `evals/results.json` with detailed per-question metrics and response data.
 
 **How It Works:** Converts Chroma L2 distance to similarity (`similarity = 1/(1 + distance)`), compares top score against 0.35 threshold. Threshold chosen as balance: high enough for meaningful matches, low enough to reject obviously irrelevant retrievals.
 

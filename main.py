@@ -4,6 +4,7 @@ from typing import List, Optional, Tuple
 import os
 import chromadb
 from sentence_transformers import SentenceTransformer
+import openai
 
 # -------------------------------------------------
 # App
@@ -23,7 +24,8 @@ class Answer(BaseModel):
     answer: str
     sources: List[str]
     confidence: float
-    confidence_reason: Optional[str] = None  # Debug info: why this confidence score
+    confidence_reason: Optional[str] = None
+    retrieved_chunks: Optional[List[dict]] = None
 
 
 # -------------------------------------------------
@@ -175,6 +177,55 @@ def load_curated_markdown(directory: str):
 
     return documents
 
+def generate_answer_with_openai(query: str, context: str, sources: List[str]) -> str:
+    """
+    Generate an answer using OpenAI based on the provided context.
+    """
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        return "Error: OPENAI_API_KEY environment variable not set."
+
+    client = openai.OpenAI(api_key=api_key)
+
+    # Format sources
+    sources_text = "\n".join(f"- {src}" for src in sources)
+
+    prompt = f"""
+You are a helpful assistant that answers questions based ONLY on the provided context.
+If the answer is not in the context, say "Not found in provided documents".
+
+Context:
+{context}
+
+Question: {query}
+
+Instructions:
+- Answer based only on the provided context
+- Be concise but complete
+- If information is not in the context, say "Not found in provided documents"
+- Do not add external knowledge or assumptions
+- Cite the sources used in your answer
+
+Sources available: {sources_text}
+
+Answer:"""
+
+    try:
+        response = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": "You are a helpful assistant that answers questions based only on provided context."},
+                {"role": "user", "content": prompt}
+            ],
+            max_tokens=500,
+            temperature=0.1
+        )
+        answer = response.choices[0].message.content.strip()
+        # Append sources to answer
+        return f"{answer}\n\nSources: {sources_text}"
+    except Exception as e:
+        return f"Error calling OpenAI API: {e}"
+
 # -------------------------------------------------
 # Routes
 # -------------------------------------------------
@@ -248,6 +299,11 @@ def ask(question: Question):
 
     print(f"DEBUG: Retrieved {len(docs)} documents, {len(metas)} metadatas, {len(distances)} distances")
 
+    retrieved_chunks = [
+        {"text": doc, "source_file": meta.get("source_file", "unknown")}
+        for doc, meta in zip(docs, metas)
+    ]
+
     if not docs:
         print("DEBUG: No documents retrieved")
         return Answer(
@@ -255,6 +311,7 @@ def ask(question: Question):
             sources=[],
             confidence=0.0,
             confidence_reason="No documents matched the query",
+            retrieved_chunks=retrieved_chunks,
         )
 
     # Relevance gate: Check top similarity score
@@ -277,6 +334,7 @@ def ask(question: Question):
                 sources=sources_list,
                 confidence=0.0,
                 confidence_reason=f"Top similarity score ({top_similarity:.2f}) below relevance threshold ({RELEVANCE_THRESHOLD})",
+                retrieved_chunks=retrieved_chunks,
             )
         else:
             print(f"DEBUG: Relevance gate passed - similarity {top_similarity:.3f} >= {RELEVANCE_THRESHOLD}")
@@ -300,11 +358,20 @@ def ask(question: Question):
             sources=[m.get("source_file", "unknown") for m in metas],
             confidence=confidence,
             confidence_reason=confidence_reason,
+            retrieved_chunks=retrieved_chunks,
         )
 
+    # Generate answer using OpenAI
+    answer_text = generate_answer_with_openai(
+        query=question.question,
+        context=combined_context,
+        sources=[m.get("source_file", "unknown") for m in metas]
+    )
+
     return Answer(
-        answer="The incident response process consists of preparation, detection and analysis, containment, eradication, recovery, and post-incident activities.",
+        answer=answer_text,
         sources=[m.get("source_file", "unknown") for m in metas],
         confidence=confidence,
         confidence_reason=confidence_reason,
+        retrieved_chunks=retrieved_chunks,
     )
