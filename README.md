@@ -271,7 +271,9 @@ Results are saved to `evals/results.json` with detailed per-question metrics and
 ### Enterprise Features
 - **No authentication**: No user management or access controls
 - **Single user**: Not designed for concurrent usage
-- **No audit logging**: No tracking of queries or responses
+- **Traceability**: Query and answer traces are persisted to `/traces/traces.db`
+- **Trace inspection endpoint**: `GET /traces/recent` returns the latest 20 request traces
+- **Debug mode**: Enable with `DEBUG_MODE=true` to print a trace summary and retrieved chunk scores per request
 - **No data encryption**: Documents stored in plain text
 
 ### Future Roadmap

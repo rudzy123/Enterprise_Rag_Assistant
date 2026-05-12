@@ -1,16 +1,24 @@
-from fastapi import FastAPI
+import json
+import logging
+import os
+import time
+import uuid
+from datetime import datetime
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from typing import List, Optional, Tuple
-import os
 import chromadb
 from sentence_transformers import SentenceTransformer
 import openai
+
+from observability import TraceStore, build_step_log, log_event, setup_json_logger
 
 # -------------------------------------------------
 # App
 # -------------------------------------------------
 
-app = FastAPI(title="Enterprise RAG Assistant")
+DEBUG_MODE = os.getenv("DEBUG_MODE", "false").lower() in ("1", "true", "yes")
+app = FastAPI(title="Enterprise RAG Assistant", debug=DEBUG_MODE)
 
 # -------------------------------------------------
 # Models
@@ -26,14 +34,16 @@ class Answer(BaseModel):
     confidence: float
     confidence_reason: Optional[str] = None
     retrieved_chunks: Optional[List[dict]] = None
+    trace_id: Optional[str] = None
 
 
 # -------------------------------------------------
 # Setup
 # -------------------------------------------------
 
+logger = setup_json_logger()
+trace_store = TraceStore()
 embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
-
 chroma_client = chromadb.PersistentClient(path="./chroma_db")
 collection = chroma_client.get_or_create_collection(
     name="enterprise_docs"
@@ -47,102 +57,42 @@ def embed(text: str):
     return embedding_model.encode(text).tolist()
 
 
-def compute_retrieval_confidence(
-    num_docs: int,
-    distances: List[float],
-    metadatas: List[dict]
-) -> Tuple[float, str]:
-    """
-    Compute confidence score based on retrieval quality signals.
-    
-    Confidence Score Ranges:
-    - 0.0–0.3:   Weak evidence (system refuses to answer)
-    - 0.3–0.6:   Partial evidence (answer given with caution)
-    - 0.6–1.0:   Strong evidence (high-confidence answer)
-    
-    Signals used:
-    1. Number of retrieved documents (more docs = stronger signal)
-    2. Similarity scores (lower distance = higher similarity/relevance)
-    3. Source diversity (multiple chunks from same source = higher confidence)
-    
-    Returns:
-        Tuple of (confidence_score, confidence_reason)
-        - confidence_score: float between 0.0 and 1.0
-        - confidence_reason: str explaining the score (for debugging/evaluation)
-    """
-    if num_docs == 0:
-        return 0.0, "No relevant documents found"
-    
-    # Signal 1: Bonus for multiple documents retrieved
-    # Penalize if only 1 doc (risk of being a weak match)
-    doc_count_score = min(num_docs / 3.0, 1.0)  # Max 3 docs, each adds 0.33
-    
-    # Signal 2: Average similarity score (distances)
-    # Chroma uses L2 distance; lower is better
-    # Convert to similarity: similarity = 1 / (1 + distance)
-    # This maps: distance=0 -> similarity=1, distance=1 -> similarity=0.5
-    if distances:
-        similarities = [1.0 / (1.0 + d) for d in distances]
-        avg_similarity = sum(similarities) / len(similarities)
-    else:
-        avg_similarity = 0.5  # Default if no distances available
-    
-    # Signal 3: Source consolidation (multiple chunks from same source)
-    # Extract source files and count unique sources
-    sources = [m.get("source_file", "unknown") for m in metadatas if m]
-    unique_sources = len(set(sources))
-    
-    # If multiple docs come from same source, boost confidence
-    # (indicates the answer is well-supported by that document)
-    source_consistency = 1.0 if unique_sources == 1 else 0.85
-    if unique_sources > 1:
-        # Diversity penalty: if we hit multiple sources, decrease slightly
-        source_consistency = 0.85
-    
-    # Combine signals with weighted average
-    # Emphasize similarity (most important) > doc count > source consistency
-    # Weights: 55% similarity + 30% doc count + 15% source consistency
-    confidence = (
-        0.55 * avg_similarity +      # Similarity is most important
-        0.30 * doc_count_score +     # Multiple docs provide strength
-        0.15 * source_consistency    # Concentration in one source is good
-    )
-    
-    # Final score clamped to [0.0, 1.0]
-    # Score interpretation:
-    # - 0.0–0.3:   Weak evidence    → System refuses answer
-    # - 0.3–0.6:   Partial evidence → Answer given with caution
-    # - 0.6–1.0:   Strong evidence  → High-confidence answer
-    final_confidence = min(1.0, max(0.0, confidence))
-    
-    # Generate human-readable reason for debugging/evaluation
-    reason_parts = []
-    
-    # Document count assessment
-    if num_docs == 1:
-        reason_parts.append("Single section retrieved")
-    elif num_docs >= 3:
-        reason_parts.append("Multiple sections retrieved")
-    else:
-        reason_parts.append(f"{num_docs} sections retrieved")
-    
-    # Similarity assessment
-    if avg_similarity >= 0.75:
-        reason_parts.append("high similarity to query")
-    elif avg_similarity >= 0.5:
-        reason_parts.append("moderate similarity to query")
-    else:
-        reason_parts.append("low similarity to query")
-    
-    # Source consolidation assessment
-    if unique_sources == 1:
-        reason_parts.append("from same document")
-    else:
-        reason_parts.append(f"from {unique_sources} different documents")
-    
-    confidence_reason = " ".join([reason_parts[0], reason_parts[1], reason_parts[2]])
-    
-    return final_confidence, confidence_reason
+def estimate_token_usage(question: str, answer: str) -> int:
+    return max(1, len(question) // 4 + len(answer) // 4)
+
+
+def determine_failure_type(
+    retrieved_chunks: List[dict],
+    confidence: float,
+    top_similarity: Optional[float],
+    answer_text: str,
+    groundedness_score: Optional[float] = None,
+) -> str:
+    if not retrieved_chunks:
+        return "weak_retrieval"
+
+    if top_similarity is not None and top_similarity < 0.35:
+        return "weak_retrieval"
+
+    low_confidence_text = answer_text.lower()
+    if "not found in provided documents" in low_confidence_text or "do not have enough information" in low_confidence_text:
+        return "partial_context"
+
+    if groundedness_score is not None and groundedness_score < 70.0:
+        return "hallucination"
+
+    return "success"
+
+
+def log_step(trace_id: str, event: str, details: dict = None):
+    step = build_step_log(event, details)
+    log_event(logger, event, trace_id=trace_id, details=details or {})
+    return step
+
+
+def save_trace(trace: dict):
+    trace_store.save_trace(trace)
+    logger.info(json.dumps({"event": "trace_saved", "trace_id": trace["trace_id"]}), extra={"extra": {"trace_id": trace["trace_id"], "event": "trace_saved"}})
 
 
 def load_curated_markdown(directory: str):
@@ -177,17 +127,73 @@ def load_curated_markdown(directory: str):
 
     return documents
 
-def generate_answer_with_openai(query: str, context: str, sources: List[str]) -> str:
+
+def compute_retrieval_confidence(
+    num_docs: int,
+    distances: List[float],
+    metadatas: List[dict]
+) -> Tuple[float, str]:
+    """
+    Compute confidence score based on retrieval quality signals.
+    
+    Confidence Score Ranges:
+    - 0.0–0.3:   Weak evidence (system refuses to answer)
+    - 0.3–0.6:   Partial evidence (answer given with caution)
+    - 0.6–1.0:   Strong evidence (high-confidence answer)
+    """
+    if num_docs == 0:
+        return 0.0, "No relevant documents found"
+    
+    doc_count_score = min(num_docs / 3.0, 1.0)
+    if distances:
+        similarities = [1.0 / (1.0 + d) for d in distances]
+        avg_similarity = sum(similarities) / len(similarities)
+    else:
+        avg_similarity = 0.5
+
+    sources = [m.get("source_file", "unknown") for m in metadatas if m]
+    unique_sources = len(set(sources))
+    source_consistency = 1.0 if unique_sources == 1 else 0.85
+
+    confidence = (
+        0.55 * avg_similarity +
+        0.30 * doc_count_score +
+        0.15 * source_consistency
+    )
+    final_confidence = min(1.0, max(0.0, confidence))
+    reason_parts = []
+    if num_docs == 1:
+        reason_parts.append("Single section retrieved")
+    elif num_docs >= 3:
+        reason_parts.append("Multiple sections retrieved")
+    else:
+        reason_parts.append(f"{num_docs} sections retrieved")
+
+    if avg_similarity >= 0.75:
+        reason_parts.append("high similarity to query")
+    elif avg_similarity >= 0.5:
+        reason_parts.append("moderate similarity to query")
+    else:
+        reason_parts.append("low similarity to query")
+
+    if unique_sources == 1:
+        reason_parts.append("from same document")
+    else:
+        reason_parts.append(f"from {unique_sources} different documents")
+
+    confidence_reason = " ".join(reason_parts)
+    return final_confidence, confidence_reason
+
+
+def generate_answer_with_openai(query: str, context: str, sources: List[str]) -> tuple[str, Optional[int]]:
     """
     Generate an answer using OpenAI based on the provided context.
     """
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
-        return "Error: OPENAI_API_KEY environment variable not set."
+        return "Error: OPENAI_API_KEY environment variable not set.", None
 
     client = openai.OpenAI(api_key=api_key)
-
-    # Format sources
     sources_text = "\n".join(f"- {src}" for src in sources)
 
     prompt = f"""
@@ -221,10 +227,12 @@ Answer:"""
             temperature=0.1
         )
         answer = response.choices[0].message.content.strip()
-        # Append sources to answer
-        return f"{answer}\n\nSources: {sources_text}"
+        total_tokens = None
+        if hasattr(response, "usage") and getattr(response, "usage"):
+            total_tokens = getattr(response.usage, "total_tokens", None)
+        return f"{answer}\n\nSources: {sources_text}", total_tokens
     except Exception as e:
-        return f"Error calling OpenAI API: {e}"
+        return f"Error calling OpenAI API: {e}", None
 
 # -------------------------------------------------
 # Routes
@@ -237,15 +245,13 @@ def ingest_docs():
     """
     docs_path = "data/docs/curated"
     
-    # Guardrail: Check if directory exists
     if not os.path.exists(docs_path):
         return {
             "error": "Document directory not found",
             "details": f"Expected directory '{docs_path}' does not exist",
             "status": "failed"
         }
-    
-    # Guardrail: Check if directory contains .md files
+
     try:
         md_files = [f for f in os.listdir(docs_path) if f.endswith('.md')]
         if not md_files:
@@ -260,10 +266,8 @@ def ingest_docs():
             "details": f"Cannot access directory '{docs_path}': {str(e)}",
             "status": "failed"
         }
-    
-    # Load and process documents
-    documents = load_curated_markdown(docs_path)
 
+    documents = load_curated_markdown(docs_path)
     for idx, doc in enumerate(documents):
         collection.add(
             ids=[f"doc_{idx}"],
@@ -286,87 +290,193 @@ def ask(question: Question):
     Confidence is based on retrieval quality (similarity scores, document count, source consolidation).
     Refuse to answer when confidence is low.
     """
+    trace_id = str(uuid.uuid4())
+    started_at = datetime.utcnow()
+    step_logs = []
+    answer_text = ""
+    generated_tokens = None
+    groundedness_score = None
+    failure_type = "success"
+
+    log_step(trace_id, "request_received", {"query": question.question})
+
     query_embedding = embed(question.question)
+    trace_query = build_step_log("query_embedding_created", {"query_length": len(question.question)})
+    step_logs.append(trace_query)
 
     results = collection.query(
         query_embeddings=[query_embedding],
         n_results=3,
     )
+    log_step(trace_id, "retrieval_started", {"n_results": 3})
 
     docs = results.get("documents", [[]])[0]
     metas = results.get("metadatas", [[]])[0]
-    distances = results.get("distances", [[]])[0]  # L2 distances from Chroma
+    distances = results.get("distances", [[]])[0]
 
-    print(f"DEBUG: Retrieved {len(docs)} documents, {len(metas)} metadatas, {len(distances)} distances")
+    retrieved_chunks = []
+    for doc, meta, distance in zip(docs, metas, distances):
+        chunk = {
+            "text": doc,
+            "source_file": meta.get("source_file", "unknown"),
+            "similarity_score": 1.0 / (1.0 + distance) if distance is not None else None,
+        }
+        retrieved_chunks.append(chunk)
 
-    retrieved_chunks = [
-        {"text": doc, "source_file": meta.get("source_file", "unknown")}
-        for doc, meta in zip(docs, metas)
-    ]
+    step_logs.append(build_step_log("retrieval_completed", {
+        "retrieved_count": len(retrieved_chunks),
+        "top_similarity": max((chunk["similarity_score"] for chunk in retrieved_chunks if chunk["similarity_score"] is not None), default=None)
+    }))
+
+    trace = {
+        "trace_id": trace_id,
+        "query": question.question,
+        "retrieved_chunks": retrieved_chunks,
+        "created_at": started_at.isoformat() + "Z",
+        "step_logs": step_logs,
+    }
 
     if not docs:
-        print("DEBUG: No documents retrieved")
+        answer_text = "I could not find relevant information in the provided documents."
+        failure_type = determine_failure_type(retrieved_chunks, 0.0, None, answer_text)
+        trace.update({
+            "answer": answer_text,
+            "confidence": 0.0,
+            "confidence_reason": "No documents matched the query",
+            "groundedness_score": groundedness_score,
+            "failure_type": failure_type,
+            "latency_ms": 0.0,
+            "token_usage": 0,
+            "evaluation": {
+                "retrieval_reason": "No docs retrieved"
+            },
+        })
+        save_trace(trace)
+        if DEBUG_MODE:
+            print(json.dumps(trace, indent=2))
         return Answer(
-            answer="I could not find relevant information in the provided documents.",
+            answer=answer_text,
             sources=[],
             confidence=0.0,
             confidence_reason="No documents matched the query",
             retrieved_chunks=retrieved_chunks,
+            trace_id=trace_id,
         )
 
-    # Relevance gate: Check top similarity score
-    # Convert L2 distance to similarity: similarity = 1 / (1 + distance)
+    top_similarity = None
     if distances:
-        top_distance = min(distances)  # Smallest distance = highest similarity
+        top_distance = min(distances)
         top_similarity = 1.0 / (1.0 + top_distance)
-        
-        print(f"DEBUG: Top distance: {top_distance:.3f}, Top similarity: {top_similarity:.3f}")
-        print(f"DEBUG: Metadatas: {metas}")
-        
-        # If top similarity is below threshold, force refusal
+        log_step(trace_id, "relevance_scored", {"top_distance": top_distance, "top_similarity": top_similarity})
+
         RELEVANCE_THRESHOLD = 0.35
         if top_similarity < RELEVANCE_THRESHOLD:
-            print(f"DEBUG: Relevance gate triggered - similarity {top_similarity:.3f} < {RELEVANCE_THRESHOLD}")
-            sources_list = [m.get("source_file", "unknown") for m in metas]
-            print(f"DEBUG: Returning sources: {sources_list}")
+            answer_text = "I do not have enough information in the documents to answer confidently."
+            failure_type = determine_failure_type(retrieved_chunks, 0.0, top_similarity, answer_text)
+            trace.update({
+                "answer": answer_text,
+                "confidence": 0.0,
+                "confidence_reason": f"Top similarity score ({top_similarity:.2f}) below relevance threshold ({RELEVANCE_THRESHOLD})",
+                "groundedness_score": groundedness_score,
+                "failure_type": failure_type,
+                "latency_ms": 0.0,
+                "token_usage": 0,
+                "evaluation": {
+                    "top_similarity": top_similarity,
+                    "relevance_threshold": RELEVANCE_THRESHOLD,
+                },
+            })
+            save_trace(trace)
+            if DEBUG_MODE:
+                print(json.dumps(trace, indent=2))
             return Answer(
-                answer="I do not have enough information in the documents to answer confidently.",
-                sources=sources_list,
+                answer=answer_text,
+                sources=[m.get("source_file", "unknown") for m in metas],
                 confidence=0.0,
                 confidence_reason=f"Top similarity score ({top_similarity:.2f}) below relevance threshold ({RELEVANCE_THRESHOLD})",
                 retrieved_chunks=retrieved_chunks,
+                trace_id=trace_id,
             )
-        else:
-            print(f"DEBUG: Relevance gate passed - similarity {top_similarity:.3f} >= {RELEVANCE_THRESHOLD}")
     else:
-        print("DEBUG: No distances available for relevance gate")
+        log_step(trace_id, "relevance_scored", {"top_similarity": None})
 
-    # Compute confidence based on retrieval quality
     confidence, confidence_reason = compute_retrieval_confidence(
         num_docs=len(docs),
         distances=distances,
         metadatas=metas
     )
+    log_step(trace_id, "confidence_computed", {
+        "confidence": confidence,
+        "confidence_reason": confidence_reason,
+    })
 
     combined_context = "\n".join(docs)
 
-    # Refuse to answer if confidence < 0.3 (weak evidence range)
-    # Threshold of 0.3 marks the boundary between weak and partial evidence
     if confidence < 0.3:
+        answer_text = "I do not have enough information in the documents to answer confidently."
+        failure_type = determine_failure_type(retrieved_chunks, confidence, top_similarity, answer_text)
+        trace.update({
+            "answer": answer_text,
+            "confidence": confidence,
+            "confidence_reason": confidence_reason,
+            "groundedness_score": groundedness_score,
+            "failure_type": failure_type,
+            "latency_ms": 0.0,
+            "token_usage": 0,
+            "evaluation": {
+                "confidence_threshold": 0.3,
+                "confidence_reason": confidence_reason,
+            },
+        })
+        save_trace(trace)
+        if DEBUG_MODE:
+            print(json.dumps(trace, indent=2))
         return Answer(
-            answer="I do not have enough information in the documents to answer confidently.",
+            answer=answer_text,
             sources=[m.get("source_file", "unknown") for m in metas],
             confidence=confidence,
             confidence_reason=confidence_reason,
             retrieved_chunks=retrieved_chunks,
+            trace_id=trace_id,
         )
 
-    # Generate answer using OpenAI
-    answer_text = generate_answer_with_openai(
+    log_step(trace_id, "generation_started", {"source_count": len(docs)})
+    answer_text, generated_tokens = generate_answer_with_openai(
         query=question.question,
         context=combined_context,
         sources=[m.get("source_file", "unknown") for m in metas]
     )
+    log_step(trace_id, "generation_completed", {"generated_tokens": generated_tokens})
+
+    token_usage = generated_tokens if generated_tokens is not None else estimate_token_usage(question.question, answer_text)
+    groundedness_score = confidence * 100.0
+    failure_type = determine_failure_type(retrieved_chunks, confidence, top_similarity, answer_text, groundedness_score)
+
+    trace.update({
+        "answer": answer_text,
+        "confidence": confidence,
+        "confidence_reason": confidence_reason,
+        "groundedness_score": groundedness_score,
+        "failure_type": failure_type,
+        "latency_ms": (datetime.utcnow() - started_at).total_seconds() * 1000.0,
+        "token_usage": token_usage,
+        "evaluation": {
+            "top_similarity": top_similarity,
+            "confidence": confidence,
+            "confidence_reason": confidence_reason,
+            "groundedness_score": groundedness_score,
+        },
+    })
+    save_trace(trace)
+
+    if DEBUG_MODE:
+        print(f"TRACE SUMMARY: {trace_id}")
+        print(f"  query={question.question}")
+        print(f"  failure_type={failure_type}")
+        print(f"  groundedness_score={groundedness_score}")
+        print(f"  retrieved_chunks={len(retrieved_chunks)}")
+        for chunk in retrieved_chunks:
+            print(f"    - {chunk['source_file']} similarity={chunk['similarity_score']:.4f}")
 
     return Answer(
         answer=answer_text,
@@ -374,4 +484,18 @@ def ask(question: Question):
         confidence=confidence,
         confidence_reason=confidence_reason,
         retrieved_chunks=retrieved_chunks,
+        trace_id=trace_id,
     )
+
+
+@app.get("/traces/recent")
+def get_recent_traces():
+    return {"recent_traces": trace_store.get_recent_traces(limit=20)}
+
+
+@app.get("/traces/{trace_id}")
+def get_trace(trace_id: str):
+    trace = trace_store.get_trace(trace_id)
+    if trace is None:
+        raise HTTPException(status_code=404, detail="Trace not found")
+    return trace
