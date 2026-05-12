@@ -1,8 +1,26 @@
 import os
 import re
 from pathlib import Path
+from config import CHUNK_OVERLAP_WORDS, CHUNK_WORD_LIMIT
 
 CURATED_DIR = Path("data/docs/curated")
+
+def split_text_into_chunks(text: str, max_words: int = CHUNK_WORD_LIMIT, overlap_words: int = CHUNK_OVERLAP_WORDS):
+    words = text.split()
+    if len(words) <= max_words:
+        return [text]
+
+    chunks = []
+    start = 0
+    while start < len(words):
+        end = min(start + max_words, len(words))
+        chunk_text = " ".join(words[start:end]).strip()
+        chunks.append(chunk_text)
+        if end == len(words):
+            break
+        start = max(end - overlap_words, start + 1)
+    return chunks
+
 
 def split_markdown_sections(text: str):
     """
@@ -66,13 +84,19 @@ def ingest_curated_markdown():
         sections = split_markdown_sections(text)
 
         for idx, (title, content) in enumerate(sections):
-            chunk = {
-                "source_file": md_file.name,
-                "section_title": title,
-                "text": content,
-                "chunk_id": f"{md_file.stem}_{idx}"
-            }
-            all_chunks.append(chunk)
+            chunks = split_text_into_chunks(content)
+            for part_index, chunk_text in enumerate(chunks, start=1):
+                section_title = title
+                if len(chunks) > 1:
+                    section_title = f"{title} (part {part_index}/{len(chunks)})"
+
+                chunk = {
+                    "source_file": md_file.name,
+                    "section_title": section_title,
+                    "text": chunk_text,
+                    "chunk_id": f"{md_file.stem}_{idx}_{part_index}"
+                }
+                all_chunks.append(chunk)
 
     return all_chunks
 

@@ -11,13 +11,19 @@ import chromadb
 from sentence_transformers import SentenceTransformer
 import openai
 
+from config import (
+    DEBUG_MODE,
+    MIN_CHUNK_SIMILARITY,
+    MIN_SIMILARITY_THRESHOLD,
+    OPENAI_MODEL,
+    TOP_K,
+)
 from observability import TraceStore, build_step_log, log_event, setup_json_logger
 
 # -------------------------------------------------
 # App
 # -------------------------------------------------
 
-DEBUG_MODE = os.getenv("DEBUG_MODE", "false").lower() in ("1", "true", "yes")
 app = FastAPI(title="Enterprise RAG Assistant", debug=DEBUG_MODE)
 
 # -------------------------------------------------
@@ -59,6 +65,20 @@ def embed(text: str):
 
 def estimate_token_usage(question: str, answer: str) -> int:
     return max(1, len(question) // 4 + len(answer) // 4)
+
+
+def generate_retrieval_only_answer(question: str, retrieved_chunks: List[dict]) -> str:
+    if not retrieved_chunks:
+        return "I could not find relevant information in the provided documents."
+
+    answer_lines = ["Based on the retrieved documents, here is the information found:"]
+    for chunk in retrieved_chunks:
+        citation = f"[{chunk['source_file']} - {chunk.get('section_title', 'section')}]"
+        snippet = chunk["text"].strip().replace("\n", " ")
+        answer_lines.append(f"{citation}: {snippet[:250]}...")
+
+    answer_lines.append("\nIf the documents do not fully answer the question, please provide a more specific query.")
+    return "\n".join(answer_lines)
 
 
 def determine_failure_type(
@@ -197,8 +217,8 @@ def generate_answer_with_openai(query: str, context: str, sources: List[str]) ->
     sources_text = "\n".join(f"- {src}" for src in sources)
 
     prompt = f"""
-You are a helpful assistant that answers questions based ONLY on the provided context.
-If the answer is not in the context, say "Not found in provided documents".
+You are a careful assistant that answers questions based ONLY on the provided context.
+If the answer is not in the context, respond exactly with "I cannot answer that based on the provided documents.".
 
 Context:
 {context}
@@ -207,20 +227,22 @@ Question: {query}
 
 Instructions:
 - Answer based only on the provided context
-- Be concise but complete
-- If information is not in the context, say "Not found in provided documents"
-- Do not add external knowledge or assumptions
-- Cite the sources used in your answer
+- Be concise, accurate, and factual
+- Do not invent facts or answer from outside the provided documents
+- If the context does not contain enough information, say "I cannot answer that based on the provided documents."
+- Cite every factual claim using the format [source_file - section_title]
+- If you cannot support a claim from the provided context, do not state it
 
-Sources available: {sources_text}
+Sources available:
+{sources_text}
 
 Answer:"""
 
     try:
         response = client.chat.completions.create(
-            model="gpt-3.5-turbo",
+            model=OPENAI_MODEL,
             messages=[
-                {"role": "system", "content": "You are a helpful assistant that answers questions based only on provided context."},
+                {"role": "system", "content": "You are a careful assistant that answers questions based only on the provided context."},
                 {"role": "user", "content": prompt}
             ],
             max_tokens=500,
@@ -230,7 +252,7 @@ Answer:"""
         total_tokens = None
         if hasattr(response, "usage") and getattr(response, "usage"):
             total_tokens = getattr(response.usage, "total_tokens", None)
-        return f"{answer}\n\nSources: {sources_text}", total_tokens
+        return f"{answer}\n\nSources:\n{sources_text}", total_tokens
     except Exception as e:
         return f"Error calling OpenAI API: {e}", None
 
@@ -284,7 +306,7 @@ def ingest_docs():
 
 
 @app.post("/ask", response_model=Answer)
-def ask(question: Question):
+def ask(question: Question, top_k: int = TOP_K):
     """
     Answer questions using retrieved evidence only.
     Confidence is based on retrieval quality (similarity scores, document count, source consolidation).
@@ -306,32 +328,49 @@ def ask(question: Question):
 
     results = collection.query(
         query_embeddings=[query_embedding],
-        n_results=3,
+        n_results=top_k,
+        include=["documents", "metadatas", "distances"],
     )
-    log_step(trace_id, "retrieval_started", {"n_results": 3})
+    log_step(trace_id, "retrieval_started", {"n_results": top_k})
 
     docs = results.get("documents", [[]])[0]
     metas = results.get("metadatas", [[]])[0]
     distances = results.get("distances", [[]])[0]
 
     retrieved_chunks = []
+    filtered_chunks = []
+    filtered_distances = []
+    filtered_metas = []
+    filtered_docs = []
+
     for doc, meta, distance in zip(docs, metas, distances):
+        similarity_score = 1.0 / (1.0 + distance) if distance is not None else None
         chunk = {
             "text": doc,
+            "section_title": meta.get("section_title", "unknown"),
             "source_file": meta.get("source_file", "unknown"),
-            "similarity_score": 1.0 / (1.0 + distance) if distance is not None else None,
+            "similarity_score": similarity_score,
         }
         retrieved_chunks.append(chunk)
 
+        if similarity_score is not None and similarity_score >= MIN_CHUNK_SIMILARITY:
+            filtered_chunks.append(chunk)
+            filtered_docs.append(doc)
+            filtered_metas.append(meta)
+            filtered_distances.append(distance)
+
     step_logs.append(build_step_log("retrieval_completed", {
         "retrieved_count": len(retrieved_chunks),
-        "top_similarity": max((chunk["similarity_score"] for chunk in retrieved_chunks if chunk["similarity_score"] is not None), default=None)
+        "filtered_count": len(filtered_chunks),
+        "top_similarity": max((chunk["similarity_score"] for chunk in retrieved_chunks if chunk["similarity_score"] is not None), default=None),
+        "min_similarity_threshold": MIN_CHUNK_SIMILARITY,
     }))
 
     trace = {
         "trace_id": trace_id,
         "query": question.question,
         "retrieved_chunks": retrieved_chunks,
+        "filtered_chunks": filtered_chunks,
         "created_at": started_at.isoformat() + "Z",
         "step_logs": step_logs,
     }
@@ -363,6 +402,34 @@ def ask(question: Question):
             trace_id=trace_id,
         )
 
+    if not filtered_chunks:
+        answer_text = "I do not have enough information in the documents to answer confidently."
+        failure_type = determine_failure_type(retrieved_chunks, 0.0, None, answer_text)
+        trace.update({
+            "answer": answer_text,
+            "confidence": 0.0,
+            "confidence_reason": f"No retrieved chunks met similarity threshold ({MIN_CHUNK_SIMILARITY})",
+            "groundedness_score": groundedness_score,
+            "failure_type": failure_type,
+            "latency_ms": 0.0,
+            "token_usage": 0,
+            "evaluation": {
+                "filtered_count": len(filtered_chunks),
+                "min_similarity_threshold": MIN_CHUNK_SIMILARITY,
+            },
+        })
+        save_trace(trace)
+        if DEBUG_MODE:
+            print(json.dumps(trace, indent=2))
+        return Answer(
+            answer=answer_text,
+            sources=[chunk["source_file"] for chunk in filtered_chunks],
+            confidence=0.0,
+            confidence_reason=f"No retrieved chunks met similarity threshold ({MIN_CHUNK_SIMILARITY})",
+            retrieved_chunks=filtered_chunks,
+            trace_id=trace_id,
+        )
+
     top_similarity = None
     if distances:
         top_distance = min(distances)
@@ -391,26 +458,27 @@ def ask(question: Question):
                 print(json.dumps(trace, indent=2))
             return Answer(
                 answer=answer_text,
-                sources=[m.get("source_file", "unknown") for m in metas],
+                sources=[m.get("source_file", "unknown") for m in filtered_metas],
                 confidence=0.0,
                 confidence_reason=f"Top similarity score ({top_similarity:.2f}) below relevance threshold ({RELEVANCE_THRESHOLD})",
-                retrieved_chunks=retrieved_chunks,
+                retrieved_chunks=filtered_chunks,
                 trace_id=trace_id,
             )
     else:
         log_step(trace_id, "relevance_scored", {"top_similarity": None})
 
     confidence, confidence_reason = compute_retrieval_confidence(
-        num_docs=len(docs),
-        distances=distances,
-        metadatas=metas
+        num_docs=len(filtered_docs),
+        distances=filtered_distances,
+        metadatas=filtered_metas
     )
     log_step(trace_id, "confidence_computed", {
         "confidence": confidence,
         "confidence_reason": confidence_reason,
+        "filtered_doc_count": len(filtered_docs),
     })
 
-    combined_context = "\n".join(docs)
+    combined_context = "\n".join(filtered_docs)
 
     if confidence < 0.3:
         answer_text = "I do not have enough information in the documents to answer confidently."
@@ -433,20 +501,25 @@ def ask(question: Question):
             print(json.dumps(trace, indent=2))
         return Answer(
             answer=answer_text,
-            sources=[m.get("source_file", "unknown") for m in metas],
+            sources=[m.get("source_file", "unknown") for m in filtered_metas],
             confidence=confidence,
             confidence_reason=confidence_reason,
-            retrieved_chunks=retrieved_chunks,
+            retrieved_chunks=filtered_chunks,
             trace_id=trace_id,
         )
 
-    log_step(trace_id, "generation_started", {"source_count": len(docs)})
-    answer_text, generated_tokens = generate_answer_with_openai(
-        query=question.question,
-        context=combined_context,
-        sources=[m.get("source_file", "unknown") for m in metas]
-    )
-    log_step(trace_id, "generation_completed", {"generated_tokens": generated_tokens})
+    log_step(trace_id, "generation_started", {"source_count": len(filtered_docs)})
+    if not os.getenv("OPENAI_API_KEY"):
+        answer_text = generate_retrieval_only_answer(question.question, filtered_chunks)
+        generated_tokens = estimate_token_usage(question.question, answer_text)
+        log_step(trace_id, "generation_fallback", {"mode": "retrieval_only"})
+    else:
+        answer_text, generated_tokens = generate_answer_with_openai(
+            query=question.question,
+            context=combined_context,
+            sources=[m.get("source_file", "unknown") for m in filtered_metas]
+        )
+        log_step(trace_id, "generation_completed", {"generated_tokens": generated_tokens})
 
     token_usage = generated_tokens if generated_tokens is not None else estimate_token_usage(question.question, answer_text)
     groundedness_score = confidence * 100.0
@@ -480,10 +553,10 @@ def ask(question: Question):
 
     return Answer(
         answer=answer_text,
-        sources=[m.get("source_file", "unknown") for m in metas],
+        sources=[m.get("source_file", "unknown") for m in filtered_metas],
         confidence=confidence,
         confidence_reason=confidence_reason,
-        retrieved_chunks=retrieved_chunks,
+        retrieved_chunks=filtered_chunks,
         trace_id=trace_id,
     )
 

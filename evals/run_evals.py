@@ -9,6 +9,7 @@ Calls the /ask endpoint and computes evaluation metrics:
   - citation_present: returned sources list is non-empty when answering
 """
 
+import argparse
 import json
 import sys
 import requests
@@ -19,6 +20,9 @@ import os
 import openai
 from datetime import datetime
 import time
+
+RESULTS_DIR = Path("evals")
+RESULTS_DIR.mkdir(exist_ok=True)
 
 def categorize_failure(question_obj: dict, response: dict, groundedness_result: dict) -> str:
     """
@@ -394,13 +398,14 @@ def compute_metrics(question_obj: dict, response: dict) -> dict:
     }
 
 
-def run_evals(jsonl_path: str, endpoint_url: str = "http://localhost:8000/ask"):
+def run_evals(jsonl_path: str, endpoint_url: str = "http://localhost:8000/ask", output_path: Path | None = None):
     """
     Run evaluations on all questions.
     
     Args:
         jsonl_path: path to questions.jsonl
         endpoint_url: full URL to the /ask endpoint
+        output_path: optional path to write JSON results
     """
     # Load questions
     try:
@@ -553,29 +558,29 @@ def run_evals(jsonl_path: str, endpoint_url: str = "http://localhost:8000/ask"):
     timestamp = datetime.now().strftime("%Y%m%d")
     timestamped_path = Path(__file__).parent / f"results_{timestamp}.json"
     latest_path = Path(__file__).parent / "results.json"
-    
-    with open(timestamped_path, "w", encoding="utf-8") as f:
-        json.dump(results, f, indent=2, ensure_ascii=False)
-    
-    # Also save as latest
-    with open(latest_path, "w", encoding="utf-8") as f:
-        json.dump(results, f, indent=2, ensure_ascii=False)
-    
-    print(f"\nResults saved to {timestamped_path}")
-    print(f"Latest results also saved to {latest_path}")
+
+    if output_path:
+        target_path = Path(output_path)
+        with open(target_path, "w", encoding="utf-8") as f:
+            json.dump(results, f, indent=2, ensure_ascii=False)
+        print(f"\nResults saved to {target_path}")
+    else:
+        with open(timestamped_path, "w", encoding="utf-8") as f:
+            json.dump(results, f, indent=2, ensure_ascii=False)
+        with open(latest_path, "w", encoding="utf-8") as f:
+            json.dump(results, f, indent=2, ensure_ascii=False)
+        print(f"\nResults saved to {timestamped_path}")
+        print(f"Latest results also saved to {latest_path}")
     
     print("\n" + "=" * 80)
 
 
 if __name__ == "__main__":
-    # Default to local evals file
-    evals_path = Path(__file__).parent / "questions.jsonl"
-    endpoint = "http://localhost:8000/ask"
-    
-    # Allow command-line overrides
-    if len(sys.argv) > 1:
-        evals_path = sys.argv[1]
-    if len(sys.argv) > 2:
-        endpoint = sys.argv[2]
-    
-    run_evals(str(evals_path), endpoint)
+    parser = argparse.ArgumentParser(description="Run evaluation suite against the /ask endpoint")
+    parser.add_argument("jsonl_path", nargs="?", default=Path(__file__).parent / "questions.jsonl", help="Path to questions.jsonl")
+    parser.add_argument("endpoint_url", nargs="?", default="http://localhost:8000/ask", help="URL for the /ask endpoint")
+    parser.add_argument("--output", "-o", default=None, help="Optional path to save evaluation results")
+    args = parser.parse_args()
+
+    output_path = Path(args.output) if args.output else None
+    run_evals(str(args.jsonl_path), args.endpoint_url, output_path=output_path)
