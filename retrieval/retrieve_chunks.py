@@ -7,9 +7,10 @@ returning the most relevant chunks based on cosine similarity.
 
 import chromadb
 from sentence_transformers import SentenceTransformer
+from config import TOP_K, MIN_SIMILARITY_THRESHOLD
 
 
-def retrieve_similar_chunks(query: str, top_k: int = 5, collection_name: str = "enterprise_docs"):
+def retrieve_similar_chunks(query: str, top_k: int = TOP_K, collection_name: str = "enterprise_docs"):
     """
     Perform semantic search against the Chroma collection.
 
