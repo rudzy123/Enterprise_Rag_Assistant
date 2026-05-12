@@ -1,15 +1,17 @@
-# Enterprise RAG Assistant
+## Enterprise RAG Assistant (Evaluation-Driven)
 
-## Overview
+A production-style Retrieval-Augmented Generation (RAG) system designed for enterprise knowledge retrieval with built-in evaluation, failure analysis, and observability.
 
-A secure, enterprise-style Retrieval-Augmented Generation (RAG) assistant that:
+### Key Differentiators
 
-- Ingests curated security documentation
-- Performs semantic search with local embeddings
-- Generates grounded, source-cited answers
-- Requires no hardcoded credentials
-- Accepts user-supplied API keys at runtime
-- Degrades gracefully when LLM access is unavailable
+- ✅ Evaluation-driven RAG with 55+ test cases
+- ✅ Groundedness scoring (claim-level verification against retrieved context)
+- ✅ Automatic hallucination detection and failure categorization
+- ✅ Retrieval precision and recall metrics
+- ✅ Full observability with request-level tracing (SQLite-backed)
+- ✅ Debuggable system with trace inspection endpoints
+
+This project focuses not just on generating answers, but on **measuring, diagnosing, and improving system reliability**.
 
 ## Business Problem
 
@@ -63,11 +65,23 @@ A Retrieval-Augmented Generation (RAG) assistant that answers questions
 ## Architecture Overview
 
 ```
-User Query → Retrieval → Answer Generation → Response
-     ↓          ↓              ↓
-  Embed Query → Semantic Search → LLM + Context → Citations
-     ↓          ↓              ↓
-ChromaDB ← Vector Database ← Grounded Answers ← Source Attribution
+User Query
+   ↓
+Retrieval Layer (ChromaDB, embeddings, top-k search)
+   ↓
+Answer Generation (LLM with grounded context)
+   ↓
+Evaluation Layer
+   - groundedness scoring
+   - retrieval precision/recall
+   - failure categorization
+   ↓
+Observability Layer
+   - trace logging (SQLite)
+   - request-level metadata
+   - debug mode
+   ↓
+Response (Answer + trace_id)
 ```
 
 **Data Flow:**
@@ -180,6 +194,28 @@ Located in `evals/questions.jsonl`, contains 55+ test questions with:
 ### Evaluation Metrics
 
 The system computes comprehensive metrics across retrieval quality, answer grounding, and overall reliability:
+
+## Observability & Debugging
+
+The system includes full request-level tracing to support debugging and analysis.
+
+Features:
+- Persistent trace storage (SQLite)
+- Unique trace_id for every request
+- Trace inspection endpoints:
+  - GET /traces/recent
+  - GET /traces/{trace_id}
+- Debug mode (DEBUG_MODE=true) for runtime inspection
+
+Each trace captures:
+- query
+- retrieved chunks and similarity scores
+- generated answer
+- groundedness score
+- failure classification
+- latency and token usage (estimated)
+
+This enables full transparency into how answers are generated and where failures occur.
 
 #### Retrieval Metrics
 | Metric | Definition | Target | Why It Matters |
