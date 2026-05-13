@@ -3,13 +3,13 @@
 import sys
 from pathlib import Path
 
-# ✅ FIX IMPORT PATH
+# ✅ Ensure project root is importable
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 
 import argparse
 import json
-from datetime import datetime
 import time
+from datetime import datetime
 
 from retrieval.retrieve_chunks import retrieve_similar_chunks
 
@@ -28,32 +28,28 @@ def load_questions(jsonl_path: str) -> list:
 
 
 def call_retrieval_directly(question: str) -> dict:
-    """
-    Direct retrieval WITH visibility (no silent failures)
-    """
     start_time = time.time()
 
-    retrieved_chunks = retrieve_similar_chunks(question)
+    chunks = retrieve_similar_chunks(question)
 
     latency_ms = (time.time() - start_time) * 1000
 
-    print(f"  DEBUG: Retrieved {len(retrieved_chunks)} chunks")
+    print(f"  DEBUG: Retrieved {len(chunks)} chunks")
 
     sources = list(set(
         c.get("source_file")
-        for c in retrieved_chunks
+        for c in chunks
         if c.get("source_file")
     ))
 
     return {
-        "retrieved_chunks": retrieved_chunks,
+        "retrieved_chunks": chunks,
         "sources": sources,
         "latency_ms": latency_ms
     }
 
 
 def compute_metrics(question_obj: dict, response: dict) -> dict:
-    # ✅ FIX: handle None properly
     expected_sources = question_obj.get("source_doc_id") or []
 
     if isinstance(expected_sources, str):
@@ -97,6 +93,10 @@ def run_evals(jsonl_path: str):
         print(f"Error: Could not find {jsonl_path}")
         sys.exit(1)
 
+    if not questions:
+        print("No questions loaded.")
+        sys.exit(1)
+
     print(f"Loaded {len(questions)} questions\n")
     print("=" * 80)
 
@@ -132,18 +132,15 @@ def run_evals(jsonl_path: str):
     print("SUMMARY")
     print("=" * 80)
 
-    # ✅ safety guard
-    valid_results = [r for r in results if "metrics" in r]
-
-    if not valid_results:
-        print("No valid results generated.")
+    if not results:
+        print("No results generated.")
         return
 
-    total = len(valid_results)
+    total = len(results)
 
-    hit_rate = sum(r["metrics"]["retrieval_hit"] for r in valid_results) / total
-    avg_precision = sum(r["metrics"]["retrieval_precision"] for r in valid_results) / total
-    avg_recall = sum(r["metrics"]["retrieval_recall"] for r in valid_results) / total
+    hit_rate = sum(r["metrics"]["retrieval_hit"] for r in results) / total
+    avg_precision = sum(r["metrics"]["retrieval_precision"] for r in results) / total
+    avg_recall = sum(r["metrics"]["retrieval_recall"] for r in results) / total
 
     print(f"Total: {total}")
     print(f"Hit Rate: {hit_rate:.2f}")
@@ -151,14 +148,18 @@ def run_evals(jsonl_path: str):
     print(f"Avg Recall: {avg_recall:.2f}")
 
     timestamp = datetime.now().strftime("%Y%m%d")
+    timestamp_path = RESULTS_DIR / f"results_{timestamp}.json"
+    latest_path = RESULTS_DIR / "results.json"
 
-    with open(RESULTS_DIR / f"results_{timestamp}.json", "w", encoding="utf-8") as f:
-        json.dump(valid_results, f, indent=2, ensure_ascii=False)
+    with open(timestamp_path, "w", encoding="utf-8") as f:
+        json.dump(results, f, indent=2, ensure_ascii=False)
 
-    with open(RESULTS_DIR / "results.json", "w", encoding="utf-8") as f:
-        json.dump(valid_results, f, indent=2, ensure_ascii=False)
+    with open(latest_path, "w", encoding="utf-8") as f:
+        json.dump(results, f, indent=2, ensure_ascii=False)
 
-    print("\n✅ Results saved to evals/results.json")
+    print(f"\n✅ Results saved to:")
+    print(f"- {timestamp_path}")
+    print(f"- {latest_path}")
 
 
 if __name__ == "__main__":
