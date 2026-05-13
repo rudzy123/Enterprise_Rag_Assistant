@@ -1,0 +1,1180 @@
+[
+  {
+    "question": "What is the purpose of the access control policy?",
+    "metrics": {
+      "retrieval_hit": true,
+      "retrieval_precision": 0.3333333333333333,
+      "retrieval_recall": 1.0,
+      "missing_critical": [],
+      "irrelevant_chunks": [
+        "nist_800_61_incident_response.md",
+        "nist_800_53_selected_controls.md"
+      ],
+      "returned_sources": [
+        "nist_800_61_incident_response.md",
+        "nist_800_53_selected_controls.md",
+        "access_control_policy.md"
+      ],
+      "num_retrieved_chunks": 7,
+      "latency_ms": 2464.1618728637695
+    }
+  },
+  {
+    "question": "Who does the access control policy apply to?",
+    "metrics": {
+      "retrieval_hit": true,
+      "retrieval_precision": 0.5,
+      "retrieval_recall": 1.0,
+      "missing_critical": [],
+      "irrelevant_chunks": [
+        "nist_800_53_selected_controls.md"
+      ],
+      "returned_sources": [
+        "nist_800_53_selected_controls.md",
+        "access_control_policy.md"
+      ],
+      "num_retrieved_chunks": 7,
+      "latency_ms": 2090.921640396118
+    }
+  },
+  {
+    "question": "What principle must access follow according to the policy?",
+    "metrics": {
+      "retrieval_hit": true,
+      "retrieval_precision": 0.3333333333333333,
+      "retrieval_recall": 1.0,
+      "missing_critical": [],
+      "irrelevant_chunks": [
+        "nist_800_61_incident_response.md",
+        "nist_800_53_selected_controls.md"
+      ],
+      "returned_sources": [
+        "nist_800_61_incident_response.md",
+        "nist_800_53_selected_controls.md",
+        "access_control_policy.md"
+      ],
+      "num_retrieved_chunks": 6,
+      "latency_ms": 2123.7337589263916
+    }
+  },
+  {
+    "question": "What is required for privileged access?",
+    "metrics": {
+      "retrieval_hit": true,
+      "retrieval_precision": 0.5,
+      "retrieval_recall": 1.0,
+      "missing_critical": [],
+      "irrelevant_chunks": [
+        "nist_800_53_selected_controls.md"
+      ],
+      "returned_sources": [
+        "nist_800_53_selected_controls.md",
+        "access_control_policy.md"
+      ],
+      "num_retrieved_chunks": 6,
+      "latency_ms": 2024.0120887756348
+    }
+  },
+  {
+    "question": "How often must access reviews occur?",
+    "metrics": {
+      "retrieval_hit": true,
+      "retrieval_precision": 0.25,
+      "retrieval_recall": 1.0,
+      "missing_critical": [],
+      "irrelevant_chunks": [
+        "nist_800_61_incident_response.md",
+        "incident_response_runbook.md",
+        "nist_800_53_selected_controls.md"
+      ],
+      "returned_sources": [
+        "nist_800_61_incident_response.md",
+        "incident_response_runbook.md",
+        "nist_800_53_selected_controls.md",
+        "access_control_policy.md"
+      ],
+      "num_retrieved_chunks": 7,
+      "latency_ms": 2159.5563888549805
+    }
+  },
+  {
+    "question": "When must access be revoked?",
+    "metrics": {
+      "retrieval_hit": true,
+      "retrieval_precision": 0.5,
+      "retrieval_recall": 1.0,
+      "missing_critical": [],
+      "irrelevant_chunks": [
+        "nist_800_53_selected_controls.md"
+      ],
+      "returned_sources": [
+        "nist_800_53_selected_controls.md",
+        "access_control_policy.md"
+      ],
+      "num_retrieved_chunks": 7,
+      "latency_ms": 2052.281379699707
+    }
+  },
+  {
+    "question": "Who approves access requests?",
+    "metrics": {
+      "retrieval_hit": true,
+      "retrieval_precision": 0.5,
+      "retrieval_recall": 1.0,
+      "missing_critical": [],
+      "irrelevant_chunks": [
+        "nist_800_53_selected_controls.md"
+      ],
+      "returned_sources": [
+        "nist_800_53_selected_controls.md",
+        "access_control_policy.md"
+      ],
+      "num_retrieved_chunks": 8,
+      "latency_ms": 2100.3191471099854
+    }
+  },
+  {
+    "question": "Who enforces technical controls for access?",
+    "metrics": {
+      "retrieval_hit": true,
+      "retrieval_precision": 0.5,
+      "retrieval_recall": 1.0,
+      "missing_critical": [],
+      "irrelevant_chunks": [
+        "nist_800_53_selected_controls.md"
+      ],
+      "returned_sources": [
+        "nist_800_53_selected_controls.md",
+        "access_control_policy.md"
+      ],
+      "num_retrieved_chunks": 8,
+      "latency_ms": 2173.246383666992
+    }
+  },
+  {
+    "question": "Who audits access records?",
+    "metrics": {
+      "retrieval_hit": true,
+      "retrieval_precision": 0.5,
+      "retrieval_recall": 1.0,
+      "missing_critical": [],
+      "irrelevant_chunks": [
+        "nist_800_53_selected_controls.md"
+      ],
+      "returned_sources": [
+        "nist_800_53_selected_controls.md",
+        "access_control_policy.md"
+      ],
+      "num_retrieved_chunks": 8,
+      "latency_ms": 2090.6946659088135
+    }
+  },
+  {
+    "question": "What are the consequences of violating the access control policy?",
+    "metrics": {
+      "retrieval_hit": true,
+      "retrieval_precision": 0.3333333333333333,
+      "retrieval_recall": 1.0,
+      "missing_critical": [],
+      "irrelevant_chunks": [
+        "nist_800_61_incident_response.md",
+        "nist_800_53_selected_controls.md"
+      ],
+      "returned_sources": [
+        "nist_800_61_incident_response.md",
+        "nist_800_53_selected_controls.md",
+        "access_control_policy.md"
+      ],
+      "num_retrieved_chunks": 7,
+      "latency_ms": 2062.844753265381
+    }
+  },
+  {
+    "question": "What is the purpose of the incident response runbook?",
+    "metrics": {
+      "retrieval_hit": true,
+      "retrieval_precision": 0.3333333333333333,
+      "retrieval_recall": 1.0,
+      "missing_critical": [],
+      "irrelevant_chunks": [
+        "nist_800_61_incident_response.md",
+        "nist_800_53_selected_controls.md"
+      ],
+      "returned_sources": [
+        "nist_800_61_incident_response.md",
+        "incident_response_runbook.md",
+        "nist_800_53_selected_controls.md"
+      ],
+      "num_retrieved_chunks": 8,
+      "latency_ms": 2045.6550121307373
+    }
+  },
+  {
+    "question": "What are some trigger events for incident response?",
+    "metrics": {
+      "retrieval_hit": true,
+      "retrieval_precision": 0.3333333333333333,
+      "retrieval_recall": 1.0,
+      "missing_critical": [],
+      "irrelevant_chunks": [
+        "nist_800_61_incident_response.md",
+        "nist_800_53_selected_controls.md"
+      ],
+      "returned_sources": [
+        "nist_800_61_incident_response.md",
+        "incident_response_runbook.md",
+        "nist_800_53_selected_controls.md"
+      ],
+      "num_retrieved_chunks": 8,
+      "latency_ms": 2026.827335357666
+    }
+  },
+  {
+    "question": "What are the response steps in the incident response runbook?",
+    "metrics": {
+      "retrieval_hit": true,
+      "retrieval_precision": 0.3333333333333333,
+      "retrieval_recall": 1.0,
+      "missing_critical": [],
+      "irrelevant_chunks": [
+        "nist_800_61_incident_response.md",
+        "nist_800_53_selected_controls.md"
+      ],
+      "returned_sources": [
+        "nist_800_61_incident_response.md",
+        "incident_response_runbook.md",
+        "nist_800_53_selected_controls.md"
+      ],
+      "num_retrieved_chunks": 8,
+      "latency_ms": 2087.658166885376
+    }
+  },
+  {
+    "question": "When must high-severity incidents be reported?",
+    "metrics": {
+      "retrieval_hit": true,
+      "retrieval_precision": 0.3333333333333333,
+      "retrieval_recall": 1.0,
+      "missing_critical": [],
+      "irrelevant_chunks": [
+        "nist_800_61_incident_response.md",
+        "nist_800_53_selected_controls.md"
+      ],
+      "returned_sources": [
+        "nist_800_61_incident_response.md",
+        "incident_response_runbook.md",
+        "nist_800_53_selected_controls.md"
+      ],
+      "num_retrieved_chunks": 8,
+      "latency_ms": 2094.116687774658
+    }
+  },
+  {
+    "question": "What is NIST SP 800-53?",
+    "metrics": {
+      "retrieval_hit": false,
+      "retrieval_precision": 1.0,
+      "retrieval_recall": 0.0,
+      "missing_critical": [
+        "nist_800_53_selected_controls.md"
+      ],
+      "irrelevant_chunks": [],
+      "returned_sources": [],
+      "num_retrieved_chunks": 0,
+      "latency_ms": 2549.7446060180664
+    }
+  },
+  {
+    "question": "What is AC-2 in NIST 800-53?",
+    "metrics": {
+      "retrieval_hit": false,
+      "retrieval_precision": 1.0,
+      "retrieval_recall": 0.0,
+      "missing_critical": [
+        "nist_800_53_selected_controls.md"
+      ],
+      "irrelevant_chunks": [],
+      "returned_sources": [],
+      "num_retrieved_chunks": 0,
+      "latency_ms": 2158.9932441711426
+    }
+  },
+  {
+    "question": "What does AC-6 Least Privilege state?",
+    "metrics": {
+      "retrieval_hit": true,
+      "retrieval_precision": 0.5,
+      "retrieval_recall": 1.0,
+      "missing_critical": [],
+      "irrelevant_chunks": [
+        "access_control_policy.md"
+      ],
+      "returned_sources": [
+        "nist_800_53_selected_controls.md",
+        "access_control_policy.md"
+      ],
+      "num_retrieved_chunks": 3,
+      "latency_ms": 2268.545150756836
+    }
+  },
+  {
+    "question": "What is IA-5 Authenticator Management?",
+    "metrics": {
+      "retrieval_hit": true,
+      "retrieval_precision": 0.5,
+      "retrieval_recall": 1.0,
+      "missing_critical": [],
+      "irrelevant_chunks": [
+        "access_control_policy.md"
+      ],
+      "returned_sources": [
+        "nist_800_53_selected_controls.md",
+        "access_control_policy.md"
+      ],
+      "num_retrieved_chunks": 6,
+      "latency_ms": 2038.6948585510254
+    }
+  },
+  {
+    "question": "What does AU-6 require?",
+    "metrics": {
+      "retrieval_hit": true,
+      "retrieval_precision": 1.0,
+      "retrieval_recall": 1.0,
+      "missing_critical": [],
+      "irrelevant_chunks": [],
+      "returned_sources": [
+        "nist_800_53_selected_controls.md"
+      ],
+      "num_retrieved_chunks": 1,
+      "latency_ms": 2186.7921352386475
+    }
+  },
+  {
+    "question": "What is the purpose of NIST SP 800-61?",
+    "metrics": {
+      "retrieval_hit": false,
+      "retrieval_precision": 1.0,
+      "retrieval_recall": 0.0,
+      "missing_critical": [
+        "nist_800_61_incident_response.md"
+      ],
+      "irrelevant_chunks": [],
+      "returned_sources": [],
+      "num_retrieved_chunks": 0,
+      "latency_ms": 2170.588731765747
+    }
+  },
+  {
+    "question": "What are the incident response objectives?",
+    "metrics": {
+      "retrieval_hit": true,
+      "retrieval_precision": 0.3333333333333333,
+      "retrieval_recall": 1.0,
+      "missing_critical": [],
+      "irrelevant_chunks": [
+        "incident_response_runbook.md",
+        "nist_800_53_selected_controls.md"
+      ],
+      "returned_sources": [
+        "nist_800_61_incident_response.md",
+        "incident_response_runbook.md",
+        "nist_800_53_selected_controls.md"
+      ],
+      "num_retrieved_chunks": 8,
+      "latency_ms": 2058.276891708374
+    }
+  },
+  {
+    "question": "What are the core incident response functions?",
+    "metrics": {
+      "retrieval_hit": true,
+      "retrieval_precision": 0.3333333333333333,
+      "retrieval_recall": 1.0,
+      "missing_critical": [],
+      "irrelevant_chunks": [
+        "incident_response_runbook.md",
+        "nist_800_53_selected_controls.md"
+      ],
+      "returned_sources": [
+        "nist_800_61_incident_response.md",
+        "incident_response_runbook.md",
+        "nist_800_53_selected_controls.md"
+      ],
+      "num_retrieved_chunks": 8,
+      "latency_ms": 2078.1497955322266
+    }
+  },
+  {
+    "question": "What does the Preparation phase include?",
+    "metrics": {
+      "retrieval_hit": true,
+      "retrieval_precision": 1.0,
+      "retrieval_recall": 1.0,
+      "missing_critical": [],
+      "irrelevant_chunks": [],
+      "returned_sources": [
+        "nist_800_61_incident_response.md"
+      ],
+      "num_retrieved_chunks": 1,
+      "latency_ms": 2054.014205932617
+    }
+  },
+  {
+    "question": "What is the focus of Detection and Analysis?",
+    "metrics": {
+      "retrieval_hit": true,
+      "retrieval_precision": 0.3333333333333333,
+      "retrieval_recall": 1.0,
+      "missing_critical": [],
+      "irrelevant_chunks": [
+        "incident_response_runbook.md",
+        "nist_800_53_selected_controls.md"
+      ],
+      "returned_sources": [
+        "nist_800_61_incident_response.md",
+        "incident_response_runbook.md",
+        "nist_800_53_selected_controls.md"
+      ],
+      "num_retrieved_chunks": 7,
+      "latency_ms": 2043.8828468322754
+    }
+  },
+  {
+    "question": "What happens during Containment, Eradication, and Recovery?",
+    "metrics": {
+      "retrieval_hit": true,
+      "retrieval_precision": 0.3333333333333333,
+      "retrieval_recall": 1.0,
+      "missing_critical": [],
+      "irrelevant_chunks": [
+        "incident_response_runbook.md",
+        "nist_800_53_selected_controls.md"
+      ],
+      "returned_sources": [
+        "nist_800_61_incident_response.md",
+        "incident_response_runbook.md",
+        "nist_800_53_selected_controls.md"
+      ],
+      "num_retrieved_chunks": 6,
+      "latency_ms": 2199.0857124328613
+    }
+  },
+  {
+    "question": "What is the principle of least privilege?",
+    "metrics": {
+      "retrieval_hit": true,
+      "retrieval_precision": 1.0,
+      "retrieval_recall": 1.0,
+      "missing_critical": [],
+      "irrelevant_chunks": [],
+      "returned_sources": [
+        "nist_800_53_selected_controls.md",
+        "access_control_policy.md"
+      ],
+      "num_retrieved_chunks": 2,
+      "latency_ms": 2028.8169384002686
+    }
+  },
+  {
+    "question": "How should compromised authenticators be handled?",
+    "metrics": {
+      "retrieval_hit": true,
+      "retrieval_precision": 0.3333333333333333,
+      "retrieval_recall": 1.0,
+      "missing_critical": [],
+      "irrelevant_chunks": [
+        "incident_response_runbook.md",
+        "access_control_policy.md"
+      ],
+      "returned_sources": [
+        "incident_response_runbook.md",
+        "nist_800_53_selected_controls.md",
+        "access_control_policy.md"
+      ],
+      "num_retrieved_chunks": 4,
+      "latency_ms": 2046.8993186950684
+    }
+  },
+  {
+    "question": "What should be done when an incident is detected?",
+    "metrics": {
+      "retrieval_hit": true,
+      "retrieval_precision": 0.6666666666666666,
+      "retrieval_recall": 1.0,
+      "missing_critical": [],
+      "irrelevant_chunks": [
+        "nist_800_53_selected_controls.md"
+      ],
+      "returned_sources": [
+        "nist_800_61_incident_response.md",
+        "incident_response_runbook.md",
+        "nist_800_53_selected_controls.md"
+      ],
+      "num_retrieved_chunks": 8,
+      "latency_ms": 2050.5056381225586
+    }
+  },
+  {
+    "question": "What is account management in access control?",
+    "metrics": {
+      "retrieval_hit": true,
+      "retrieval_precision": 0.5,
+      "retrieval_recall": 1.0,
+      "missing_critical": [],
+      "irrelevant_chunks": [
+        "access_control_policy.md"
+      ],
+      "returned_sources": [
+        "nist_800_53_selected_controls.md",
+        "access_control_policy.md"
+      ],
+      "num_retrieved_chunks": 7,
+      "latency_ms": 2152.5871753692627
+    }
+  },
+  {
+    "question": "Why is privileged access restricted?",
+    "metrics": {
+      "retrieval_hit": true,
+      "retrieval_precision": 0.5,
+      "retrieval_recall": 1.0,
+      "missing_critical": [],
+      "irrelevant_chunks": [
+        "access_control_policy.md"
+      ],
+      "returned_sources": [
+        "nist_800_53_selected_controls.md",
+        "access_control_policy.md"
+      ],
+      "num_retrieved_chunks": 4,
+      "latency_ms": 2040.4469966888428
+    }
+  },
+  {
+    "question": "What is the scope of the access control policy?",
+    "metrics": {
+      "retrieval_hit": true,
+      "retrieval_precision": 0.3333333333333333,
+      "retrieval_recall": 1.0,
+      "missing_critical": [],
+      "irrelevant_chunks": [
+        "nist_800_61_incident_response.md",
+        "nist_800_53_selected_controls.md"
+      ],
+      "returned_sources": [
+        "nist_800_61_incident_response.md",
+        "nist_800_53_selected_controls.md",
+        "access_control_policy.md"
+      ],
+      "num_retrieved_chunks": 8,
+      "latency_ms": 2049.6673583984375
+    }
+  },
+  {
+    "question": "What are the responsibilities in access control?",
+    "metrics": {
+      "retrieval_hit": true,
+      "retrieval_precision": 0.3333333333333333,
+      "retrieval_recall": 1.0,
+      "missing_critical": [],
+      "irrelevant_chunks": [
+        "nist_800_61_incident_response.md",
+        "nist_800_53_selected_controls.md"
+      ],
+      "returned_sources": [
+        "nist_800_61_incident_response.md",
+        "nist_800_53_selected_controls.md",
+        "access_control_policy.md"
+      ],
+      "num_retrieved_chunks": 8,
+      "latency_ms": 2104.0093898773193
+    }
+  },
+  {
+    "question": "What triggers incident response?",
+    "metrics": {
+      "retrieval_hit": true,
+      "retrieval_precision": 0.3333333333333333,
+      "retrieval_recall": 1.0,
+      "missing_critical": [],
+      "irrelevant_chunks": [
+        "nist_800_61_incident_response.md",
+        "nist_800_53_selected_controls.md"
+      ],
+      "returned_sources": [
+        "nist_800_61_incident_response.md",
+        "incident_response_runbook.md",
+        "nist_800_53_selected_controls.md"
+      ],
+      "num_retrieved_chunks": 8,
+      "latency_ms": 2007.0912837982178
+    }
+  },
+  {
+    "question": "What comes after containing an incident?",
+    "metrics": {
+      "retrieval_hit": true,
+      "retrieval_precision": 0.3333333333333333,
+      "retrieval_recall": 1.0,
+      "missing_critical": [],
+      "irrelevant_chunks": [
+        "nist_800_61_incident_response.md",
+        "nist_800_53_selected_controls.md"
+      ],
+      "returned_sources": [
+        "nist_800_61_incident_response.md",
+        "incident_response_runbook.md",
+        "nist_800_53_selected_controls.md"
+      ],
+      "num_retrieved_chunks": 8,
+      "latency_ms": 2015.9869194030762
+    }
+  },
+  {
+    "question": "What is the NIST Cybersecurity Framework alignment?",
+    "metrics": {
+      "retrieval_hit": true,
+      "retrieval_precision": 0.5,
+      "retrieval_recall": 1.0,
+      "missing_critical": [],
+      "irrelevant_chunks": [
+        "incident_response_runbook.md"
+      ],
+      "returned_sources": [
+        "nist_800_61_incident_response.md",
+        "incident_response_runbook.md"
+      ],
+      "num_retrieved_chunks": 4,
+      "latency_ms": 2067.3775672912598
+    }
+  },
+  {
+    "question": "What is required for effective incident response preparation?",
+    "metrics": {
+      "retrieval_hit": true,
+      "retrieval_precision": 0.3333333333333333,
+      "retrieval_recall": 1.0,
+      "missing_critical": [],
+      "irrelevant_chunks": [
+        "incident_response_runbook.md",
+        "nist_800_53_selected_controls.md"
+      ],
+      "returned_sources": [
+        "nist_800_61_incident_response.md",
+        "incident_response_runbook.md",
+        "nist_800_53_selected_controls.md"
+      ],
+      "num_retrieved_chunks": 8,
+      "latency_ms": 2114.0618324279785
+    }
+  },
+  {
+    "question": "What is the focus of incident detection?",
+    "metrics": {
+      "retrieval_hit": true,
+      "retrieval_precision": 0.3333333333333333,
+      "retrieval_recall": 1.0,
+      "missing_critical": [],
+      "irrelevant_chunks": [
+        "incident_response_runbook.md",
+        "nist_800_53_selected_controls.md"
+      ],
+      "returned_sources": [
+        "nist_800_61_incident_response.md",
+        "incident_response_runbook.md",
+        "nist_800_53_selected_controls.md"
+      ],
+      "num_retrieved_chunks": 8,
+      "latency_ms": 2022.8700637817383
+    }
+  },
+  {
+    "question": "What happens during incident containment?",
+    "metrics": {
+      "retrieval_hit": true,
+      "retrieval_precision": 0.3333333333333333,
+      "retrieval_recall": 1.0,
+      "missing_critical": [],
+      "irrelevant_chunks": [
+        "incident_response_runbook.md",
+        "nist_800_53_selected_controls.md"
+      ],
+      "returned_sources": [
+        "nist_800_61_incident_response.md",
+        "incident_response_runbook.md",
+        "nist_800_53_selected_controls.md"
+      ],
+      "num_retrieved_chunks": 8,
+      "latency_ms": 2009.2859268188477
+    }
+  },
+  {
+    "question": "What is incident eradication?",
+    "metrics": {
+      "retrieval_hit": true,
+      "retrieval_precision": 0.3333333333333333,
+      "retrieval_recall": 1.0,
+      "missing_critical": [],
+      "irrelevant_chunks": [
+        "incident_response_runbook.md",
+        "nist_800_53_selected_controls.md"
+      ],
+      "returned_sources": [
+        "nist_800_61_incident_response.md",
+        "incident_response_runbook.md",
+        "nist_800_53_selected_controls.md"
+      ],
+      "num_retrieved_chunks": 7,
+      "latency_ms": 2078.141927719116
+    }
+  },
+  {
+    "question": "What is incident recovery?",
+    "metrics": {
+      "retrieval_hit": true,
+      "retrieval_precision": 0.3333333333333333,
+      "retrieval_recall": 1.0,
+      "missing_critical": [],
+      "irrelevant_chunks": [
+        "incident_response_runbook.md",
+        "nist_800_53_selected_controls.md"
+      ],
+      "returned_sources": [
+        "nist_800_61_incident_response.md",
+        "incident_response_runbook.md",
+        "nist_800_53_selected_controls.md"
+      ],
+      "num_retrieved_chunks": 7,
+      "latency_ms": 2201.5888690948486
+    }
+  },
+  {
+    "question": "How often should account reviews be performed?",
+    "metrics": {
+      "retrieval_hit": true,
+      "retrieval_precision": 0.5,
+      "retrieval_recall": 1.0,
+      "missing_critical": [],
+      "irrelevant_chunks": [
+        "access_control_policy.md"
+      ],
+      "returned_sources": [
+        "nist_800_53_selected_controls.md",
+        "access_control_policy.md"
+      ],
+      "num_retrieved_chunks": 3,
+      "latency_ms": 2107.6135635375977
+    }
+  },
+  {
+    "question": "What is authenticator management?",
+    "metrics": {
+      "retrieval_hit": true,
+      "retrieval_precision": 0.5,
+      "retrieval_recall": 1.0,
+      "missing_critical": [],
+      "irrelevant_chunks": [
+        "access_control_policy.md"
+      ],
+      "returned_sources": [
+        "nist_800_53_selected_controls.md",
+        "access_control_policy.md"
+      ],
+      "num_retrieved_chunks": 6,
+      "latency_ms": 2025.8936882019043
+    }
+  },
+  {
+    "question": "What should be done with audit logs?",
+    "metrics": {
+      "retrieval_hit": true,
+      "retrieval_precision": 0.25,
+      "retrieval_recall": 1.0,
+      "missing_critical": [],
+      "irrelevant_chunks": [
+        "nist_800_61_incident_response.md",
+        "incident_response_runbook.md",
+        "access_control_policy.md"
+      ],
+      "returned_sources": [
+        "nist_800_61_incident_response.md",
+        "incident_response_runbook.md",
+        "nist_800_53_selected_controls.md",
+        "access_control_policy.md"
+      ],
+      "num_retrieved_chunks": 7,
+      "latency_ms": 2059.0977668762207
+    }
+  },
+  {
+    "question": "What is the goal of incident response?",
+    "metrics": {
+      "retrieval_hit": true,
+      "retrieval_precision": 0.3333333333333333,
+      "retrieval_recall": 1.0,
+      "missing_critical": [],
+      "irrelevant_chunks": [
+        "incident_response_runbook.md",
+        "nist_800_53_selected_controls.md"
+      ],
+      "returned_sources": [
+        "nist_800_61_incident_response.md",
+        "incident_response_runbook.md",
+        "nist_800_53_selected_controls.md"
+      ],
+      "num_retrieved_chunks": 8,
+      "latency_ms": 2125.300645828247
+    }
+  },
+  {
+    "question": "What tools are needed for incident response?",
+    "metrics": {
+      "retrieval_hit": true,
+      "retrieval_precision": 0.3333333333333333,
+      "retrieval_recall": 1.0,
+      "missing_critical": [],
+      "irrelevant_chunks": [
+        "incident_response_runbook.md",
+        "nist_800_53_selected_controls.md"
+      ],
+      "returned_sources": [
+        "nist_800_61_incident_response.md",
+        "incident_response_runbook.md",
+        "nist_800_53_selected_controls.md"
+      ],
+      "num_retrieved_chunks": 8,
+      "latency_ms": 2158.0748558044434
+    }
+  },
+  {
+    "question": "What is the first step in incident response?",
+    "metrics": {
+      "retrieval_hit": true,
+      "retrieval_precision": 0.3333333333333333,
+      "retrieval_recall": 1.0,
+      "missing_critical": [],
+      "irrelevant_chunks": [
+        "nist_800_61_incident_response.md",
+        "nist_800_53_selected_controls.md"
+      ],
+      "returned_sources": [
+        "nist_800_61_incident_response.md",
+        "incident_response_runbook.md",
+        "nist_800_53_selected_controls.md"
+      ],
+      "num_retrieved_chunks": 8,
+      "latency_ms": 2108.0734729766846
+    }
+  },
+  {
+    "question": "What is the second step in incident response?",
+    "metrics": {
+      "retrieval_hit": true,
+      "retrieval_precision": 0.3333333333333333,
+      "retrieval_recall": 1.0,
+      "missing_critical": [],
+      "irrelevant_chunks": [
+        "nist_800_61_incident_response.md",
+        "nist_800_53_selected_controls.md"
+      ],
+      "returned_sources": [
+        "nist_800_61_incident_response.md",
+        "incident_response_runbook.md",
+        "nist_800_53_selected_controls.md"
+      ],
+      "num_retrieved_chunks": 8,
+      "latency_ms": 2055.3042888641357
+    }
+  },
+  {
+    "question": "What is the third step in incident response?",
+    "metrics": {
+      "retrieval_hit": true,
+      "retrieval_precision": 0.3333333333333333,
+      "retrieval_recall": 1.0,
+      "missing_critical": [],
+      "irrelevant_chunks": [
+        "nist_800_61_incident_response.md",
+        "nist_800_53_selected_controls.md"
+      ],
+      "returned_sources": [
+        "nist_800_61_incident_response.md",
+        "incident_response_runbook.md",
+        "nist_800_53_selected_controls.md"
+      ],
+      "num_retrieved_chunks": 8,
+      "latency_ms": 2089.6615982055664
+    }
+  },
+  {
+    "question": "What is the fourth step in incident response?",
+    "metrics": {
+      "retrieval_hit": true,
+      "retrieval_precision": 0.3333333333333333,
+      "retrieval_recall": 1.0,
+      "missing_critical": [],
+      "irrelevant_chunks": [
+        "nist_800_61_incident_response.md",
+        "nist_800_53_selected_controls.md"
+      ],
+      "returned_sources": [
+        "nist_800_61_incident_response.md",
+        "incident_response_runbook.md",
+        "nist_800_53_selected_controls.md"
+      ],
+      "num_retrieved_chunks": 8,
+      "latency_ms": 2113.114356994629
+    }
+  },
+  {
+    "question": "What is the fifth step in incident response?",
+    "metrics": {
+      "retrieval_hit": true,
+      "retrieval_precision": 0.3333333333333333,
+      "retrieval_recall": 1.0,
+      "missing_critical": [],
+      "irrelevant_chunks": [
+        "nist_800_61_incident_response.md",
+        "nist_800_53_selected_controls.md"
+      ],
+      "returned_sources": [
+        "nist_800_61_incident_response.md",
+        "incident_response_runbook.md",
+        "nist_800_53_selected_controls.md"
+      ],
+      "num_retrieved_chunks": 8,
+      "latency_ms": 2165.658950805664
+    }
+  },
+  {
+    "question": "What is the sixth step in incident response?",
+    "metrics": {
+      "retrieval_hit": true,
+      "retrieval_precision": 0.3333333333333333,
+      "retrieval_recall": 1.0,
+      "missing_critical": [],
+      "irrelevant_chunks": [
+        "nist_800_61_incident_response.md",
+        "nist_800_53_selected_controls.md"
+      ],
+      "returned_sources": [
+        "nist_800_61_incident_response.md",
+        "incident_response_runbook.md",
+        "nist_800_53_selected_controls.md"
+      ],
+      "num_retrieved_chunks": 8,
+      "latency_ms": 2072.450876235962
+    }
+  },
+  {
+    "question": "Who must be notified for high-severity incidents?",
+    "metrics": {
+      "retrieval_hit": true,
+      "retrieval_precision": 0.3333333333333333,
+      "retrieval_recall": 1.0,
+      "missing_critical": [],
+      "irrelevant_chunks": [
+        "nist_800_61_incident_response.md",
+        "nist_800_53_selected_controls.md"
+      ],
+      "returned_sources": [
+        "nist_800_61_incident_response.md",
+        "incident_response_runbook.md",
+        "nist_800_53_selected_controls.md"
+      ],
+      "num_retrieved_chunks": 8,
+      "latency_ms": 2074.097156524658
+    }
+  },
+  {
+    "question": "How quickly must high-severity incidents be reported?",
+    "metrics": {
+      "retrieval_hit": true,
+      "retrieval_precision": 0.3333333333333333,
+      "retrieval_recall": 1.0,
+      "missing_critical": [],
+      "irrelevant_chunks": [
+        "nist_800_61_incident_response.md",
+        "nist_800_53_selected_controls.md"
+      ],
+      "returned_sources": [
+        "nist_800_61_incident_response.md",
+        "incident_response_runbook.md",
+        "nist_800_53_selected_controls.md"
+      ],
+      "num_retrieved_chunks": 8,
+      "latency_ms": 2096.7464447021484
+    }
+  },
+  {
+    "question": "What is the status of NIST 800-53?",
+    "metrics": {
+      "retrieval_hit": false,
+      "retrieval_precision": 1.0,
+      "retrieval_recall": 0.0,
+      "missing_critical": [
+        "nist_800_53_selected_controls.md"
+      ],
+      "irrelevant_chunks": [],
+      "returned_sources": [],
+      "num_retrieved_chunks": 0,
+      "latency_ms": 2096.454858779907
+    }
+  },
+  {
+    "question": "What is the publisher of NIST 800-53?",
+    "metrics": {
+      "retrieval_hit": false,
+      "retrieval_precision": 1.0,
+      "retrieval_recall": 0.0,
+      "missing_critical": [
+        "nist_800_53_selected_controls.md"
+      ],
+      "irrelevant_chunks": [],
+      "returned_sources": [],
+      "num_retrieved_chunks": 0,
+      "latency_ms": 2031.4624309539795
+    }
+  },
+  {
+    "question": "Is NIST 800-53 a replacement for the full standard?",
+    "metrics": {
+      "retrieval_hit": false,
+      "retrieval_precision": 1.0,
+      "retrieval_recall": 0.0,
+      "missing_critical": [
+        "nist_800_53_selected_controls.md"
+      ],
+      "irrelevant_chunks": [],
+      "returned_sources": [],
+      "num_retrieved_chunks": 0,
+      "latency_ms": 2018.1479454040527
+    }
+  },
+  {
+    "question": "What is the focus of the curated NIST 800-53?",
+    "metrics": {
+      "retrieval_hit": false,
+      "retrieval_precision": 1.0,
+      "retrieval_recall": 0.0,
+      "missing_critical": [
+        "nist_800_53_selected_controls.md"
+      ],
+      "irrelevant_chunks": [],
+      "returned_sources": [],
+      "num_retrieved_chunks": 0,
+      "latency_ms": 2059.7665309906006
+    }
+  },
+  {
+    "question": "What is the source of NIST 800-61?",
+    "metrics": {
+      "retrieval_hit": false,
+      "retrieval_precision": 1.0,
+      "retrieval_recall": 0.0,
+      "missing_critical": [
+        "nist_800_61_incident_response.md"
+      ],
+      "irrelevant_chunks": [],
+      "returned_sources": [],
+      "num_retrieved_chunks": 0,
+      "latency_ms": 2035.7928276062012
+    }
+  },
+  {
+    "question": "What is the status of NIST 800-61?",
+    "metrics": {
+      "retrieval_hit": false,
+      "retrieval_precision": 1.0,
+      "retrieval_recall": 0.0,
+      "missing_critical": [
+        "nist_800_61_incident_response.md"
+      ],
+      "irrelevant_chunks": [],
+      "returned_sources": [],
+      "num_retrieved_chunks": 0,
+      "latency_ms": 2073.5909938812256
+    }
+  },
+  {
+    "question": "What framework does NIST 800-61 align with?",
+    "metrics": {
+      "retrieval_hit": false,
+      "retrieval_precision": 1.0,
+      "retrieval_recall": 0.0,
+      "missing_critical": [
+        "nist_800_61_incident_response.md"
+      ],
+      "irrelevant_chunks": [],
+      "returned_sources": [],
+      "num_retrieved_chunks": 0,
+      "latency_ms": 2039.4513607025146
+    }
+  },
+  {
+    "question": "What is the dress code for external conferences?",
+    "metrics": {
+      "retrieval_hit": true,
+      "retrieval_precision": 1.0,
+      "retrieval_recall": 1.0,
+      "missing_critical": [],
+      "irrelevant_chunks": [],
+      "returned_sources": [],
+      "num_retrieved_chunks": 0,
+      "latency_ms": 2071.9470977783203
+    }
+  },
+  {
+    "question": "What is the company cafeteria menu?",
+    "metrics": {
+      "retrieval_hit": true,
+      "retrieval_precision": 1.0,
+      "retrieval_recall": 1.0,
+      "missing_critical": [],
+      "irrelevant_chunks": [],
+      "returned_sources": [],
+      "num_retrieved_chunks": 0,
+      "latency_ms": 2069.394111633301
+    }
+  },
+  {
+    "question": "Who won the last company ping pong tournament?",
+    "metrics": {
+      "retrieval_hit": true,
+      "retrieval_precision": 1.0,
+      "retrieval_recall": 1.0,
+      "missing_critical": [],
+      "irrelevant_chunks": [],
+      "returned_sources": [],
+      "num_retrieved_chunks": 0,
+      "latency_ms": 2078.819751739502
+    }
+  },
+  {
+    "question": "What is the weather like today?",
+    "metrics": {
+      "retrieval_hit": true,
+      "retrieval_precision": 1.0,
+      "retrieval_recall": 1.0,
+      "missing_critical": [],
+      "irrelevant_chunks": [],
+      "returned_sources": [],
+      "num_retrieved_chunks": 0,
+      "latency_ms": 2068.8934326171875
+    }
+  },
+  {
+    "question": "How do I book a vacation?",
+    "metrics": {
+      "retrieval_hit": true,
+      "retrieval_precision": 1.0,
+      "retrieval_recall": 1.0,
+      "missing_critical": [],
+      "irrelevant_chunks": [],
+      "returned_sources": [],
+      "num_retrieved_chunks": 0,
+      "latency_ms": 2065.392017364502
+    }
+  }
+]

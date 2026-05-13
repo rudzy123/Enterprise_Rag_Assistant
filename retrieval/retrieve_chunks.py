@@ -1,117 +1,142 @@
 """
-Semantic retrieval from Chroma collection.
+Semantic retrieval from Chroma collection (pure vector search).
 
 Queries the enterprise_docs collection with semantic search,
 returning the most relevant chunks based on cosine similarity.
+No API calls, no LLM dependencies - pure local vector search.
 """
 
 import chromadb
 from sentence_transformers import SentenceTransformer
 
 
-def retrieve_similar_chunks(query: str, top_k: int = 5, collection_name: str = "enterprise_docs"):
+def retrieve_similar_chunks(
+    query: str,
+    top_k: int = 5,
+    collection_name: str = "enterprise_docs",
+    min_similarity: float = 0.4,
+    verbose: bool = False
+):
     """
     Perform semantic search against the Chroma collection.
+    
+    Pure vector search - no API calls, no external dependencies.
 
     Args:
         query: Plain text search query
-        top_k: Number of top results to return (default: 5)
-        collection_name: Name of the Chroma collection
+        top_k: Number of top results to return (default: 8)
+        collection_name: Name of the Chroma collection (default: "enterprise_docs")
+        min_similarity: Minimum similarity threshold (0.0-1.0, default: 0.3)
+                       Chunks below this threshold are filtered out
+        verbose: Print detailed retrieval steps (default: False)
 
     Returns:
-        List of dicts with retrieval results
+        List of dicts with keys:
+        - text: Full document text
+        - source_file: Source document filename
+        - section_title: Section title from metadata
+        - similarity_score: Cosine similarity (0.0-1.0)
+        - chunk_id: Unique chunk identifier
+        
+        Returns empty list if retrieval fails or no chunks meet similarity threshold
     """
+    
+    if verbose:
+        print("\n" + "=" * 80)
+        print("RETRIEVAL: INITIALIZE")
+        print("=" * 80)
 
-    # Step 1: Initialize embedding model (same as used for storage)
-    print("\n" + "=" * 80)
-    print("STEP 1: INITIALIZE EMBEDDING MODEL")
-    print("=" * 80)
-
+    # Initialize embedding model (same as used for storage)
     model_name = "all-MiniLM-L6-v2"
     embedding_model = SentenceTransformer(model_name)
-    print(f"✓ Loaded embedding model: {model_name}")
+    
+    if verbose:
+        print(f"✓ Loaded embedding model: {model_name}")
 
-    # Step 2: Connect to existing Chroma collection
-    print("\n" + "=" * 80)
-    print("STEP 2: CONNECT TO CHROMA COLLECTION")
-    print("=" * 80)
-
-    chroma_client = chromadb.PersistentClient(path="./chroma_db")
-    print(f"✓ Initialized persistent Chroma client")
-
+    # Connect to persistent Chroma collection
     try:
+        chroma_client = chromadb.PersistentClient(path="./chroma_db")
         collection = chroma_client.get_collection(name=collection_name)
-        print(f"✓ Connected to collection: '{collection_name}'")
+        if verbose:
+            print(f"✓ Connected to collection: '{collection_name}'")
     except Exception as e:
-        print(f"✗ Failed to connect to collection '{collection_name}': {e}")
-        print("  Make sure to run embed_and_store.py first to create the collection.")
+        print(f"Error: Failed to connect to collection '{collection_name}': {e}")
+        print("       Make sure to run embed_and_store.py first to create the collection.")
         return []
 
-    # Step 3: Encode query
-    print("\n" + "=" * 80)
-    print("STEP 3: ENCODE QUERY")
-    print("=" * 80)
-
+    # Encode query to embedding
     query_embedding = embedding_model.encode(query)
-    print(f"✓ Encoded query: '{query}'")
-    print(f"  Embedding dimension: {len(query_embedding)}")
+    
+    if verbose:
+        print(f"✓ Encoded query: '{query}'")
+        print(f"  Embedding dimension: {len(query_embedding)}")
 
-    # Step 4: Perform semantic search
-    print("\n" + "=" * 80)
-    print("STEP 4: PERFORM SEMANTIC SEARCH")
-    print("=" * 80)
+    # Retrieve candidates with margin for filtering
+    # Query more results than needed to account for similarity filtering
+    n_candidates = max(top_k * 2, 20)
+    
+    if verbose:
+        print(f"\n" + "=" * 80)
+        print("RETRIEVAL: SEMANTIC SEARCH")
+        print("=" * 80)
+        print(f"  Querying for {n_candidates} candidates...")
 
     results = collection.query(
         query_embeddings=[query_embedding],
-        n_results=top_k,
-        include=["embeddings", "documents", "metadatas", "distances"]
+        n_results=n_candidates,
+        include=["documents", "metadatas", "distances"]
     )
 
-    print(f"✓ Retrieved {len(results['ids'][0])} results")
-
-    # Step 5: Format and display results
-    print("\n" + "=" * 80)
-    print("STEP 5: RESULTS")
-    print("=" * 80)
-
-    formatted_results = []
-
-    for i, (chunk_id, distance, document, metadata) in enumerate(zip(
+    # Convert distances to similarity scores and filter
+    # Distance = 1 - cosine_similarity, so similarity = 1 - distance
+    retrieved_chunks = []
+    
+    for chunk_id, distance, document, metadata in zip(
         results['ids'][0],
         results['distances'][0],
         results['documents'][0],
         results['metadatas'][0]
-    )):
-        # Convert cosine distance to similarity score (1 - distance)
+    ):
         similarity_score = 1.0 - distance
-
-        result = {
-            "rank": i + 1,
-            "chunk_id": chunk_id,
-            "similarity_score": similarity_score,
-            "section_title": metadata.get("section_title", "Unknown"),
+        
+        # Filter by similarity threshold
+        if similarity_score < min_similarity:
+            continue
+        
+        chunk = {
+            "text": document,
             "source_file": metadata.get("source_file", "Unknown"),
-            "text_preview": document[:200] + "..." if len(document) > 200 else document
+            "section_title": metadata.get("section_title", "Unknown"),
+            "similarity_score": similarity_score,
+            "chunk_id": chunk_id
         }
+        retrieved_chunks.append(chunk)
 
-        formatted_results.append(result)
+    # Limit to top_k results
+    top_chunks = retrieved_chunks[:top_k]
+    
+    if verbose:
+        print(f"✓ Retrieved {len(top_chunks)}/{len(retrieved_chunks)} chunks")
+        print(f"  (Filtered by min_similarity >= {min_similarity})")
+        print(f"\n" + "=" * 80)
+        print("RETRIEVAL: RESULTS")
+        print("=" * 80)
+        
+        for i, chunk in enumerate(top_chunks, 1):
+            print(f"\n--- Result {i} ---")
+            print(f"Similarity: {chunk['similarity_score']:.4f}")
+            print(f"Source: {chunk['source_file']}")
+            print(f"Section: {chunk['section_title']}")
+            text_preview = chunk['text'][:150] + "..." if len(chunk['text']) > 150 else chunk['text']
+            print(f"Text: {text_preview}")
+        
+        print("\n" + "=" * 80)
 
-        # Print formatted result
-        print(f"\n--- Result {result['rank']} ---")
-        print(f"Similarity Score: {result['similarity_score']:.4f}")
-        print(f"Section Title: {result['section_title']}")
-        print(f"Source File: {result['source_file']}")
-        print(f"Text Preview: {result['text_preview']}")
-
-    print("\n" + "=" * 80)
-    print("✓ RETRIEVAL COMPLETE")
-    print("=" * 80)
-
-    return formatted_results
+    return top_chunks
 
 
 if __name__ == "__main__":
-    # Example usage - you can modify these queries
+    # Example usage - test queries with verbose output
     test_queries = [
         "What is the incident response process?",
         "How do I manage user access controls?"
@@ -121,4 +146,4 @@ if __name__ == "__main__":
         print(f"\n{'='*100}")
         print(f"QUERY: {query}")
         print(f"{'='*100}")
-        retrieve_similar_chunks(query, top_k=4)
+        chunks = retrieve_similar_chunks(query, top_k=8, verbose=True)
